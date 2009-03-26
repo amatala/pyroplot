@@ -1,0 +1,11 @@
+Help for parameters
+
+Number of parameters: Add the number of parameters in FDS input file (PAR) and press 'Enter' 
+
+Define the parameter types:
+	t(T_MAX) - the final time of temperature ramp (&RAMP T): Fill the maximum (and initial) temperature of the ramp.
+	TWFIN - the final time of simulation (same as the final time of temperature ramp)
+	NU_FUEL - Mass fraction of fuel gases, 1-nu_residue: Choose the corresponding residue variable.
+	MASS_FRACTION - Mass fraction of layer material, summing to 1: Choose the corresponding variables and add moisture content (default 0 %).
+
+Finish by clicking 'OK'

@@ -1,0 +1,6 @@
+Help!
+
+Choose from the Popup-menu which kind of mass data FDS produces. The alternatives are:
+
+BR - Burning rate (kg/sm^2), must be in 6th column of .devc - file (5th device)
+SD - Surface density (kg/m^2), must be in the 5th column of .devc - file (4th device)

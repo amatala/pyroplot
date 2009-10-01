@@ -83,17 +83,17 @@ if strcmp(type,'Cone')
 end
 handles.hvar = uicontrol(hTGAga, 'Style', 'pushbutton', ...
    'String', 'Variables', ...
-   'Callback', @variables_cb, ...
+   'Callback', {@variables_cb,type}, ...
    'Units', 'normalized', ...
    'Position', [0.76 0.86 0.15 0.04]);
 
-if strcmp(type,'TGA')
+%if strcmp(type,'TGA')
 handles.hpar = uicontrol(hTGAga, 'Style', 'pushbutton', ...
    'String', 'Parameters', ...
-   'Callback', @parameters_cb, ...
+   'Callback', {@parameters_cb,type}, ...
    'Units', 'normalized', ...
    'Position', [0.76 0.8 0.15 0.04]);
-end
+%end
 
 %if strcmp(type,'TGA')
 %handles.hpar = uicontrol(hTGAga, 'Style', 'pushbutton', ...
@@ -107,18 +107,18 @@ if strcmp(type,'Cone')
     hChoose = uicontrol(hTGAga, 'Style', 'text', ...
         'String', 'Choose ', ...
         'Units', 'normalized', ...
-        'Position', [0.74 0.795 0.1 0.04]);
+        'Position', [0.74 0.73 0.1 0.04]);
     handles.hDataType = uicontrol(hTGAga, 'Style', 'popupmenu', ...
         'String',{'BR','SD'},...
         'BackgroundColor', 'w',...
         'Units', 'normalized', ...
         'Value',1,...
-        'Position',[0.84 0.8 0.1 0.04]);
+        'Position',[0.84 0.735 0.1 0.04]);
     hHelp =uicontrol(hTGAga, 'Style', 'pushbutton', ...
         'String','?',...
         'Callback', @help_cone_GA, ...
         'Units', 'normalized', ...
-        'Position',[0.95 0.8 0.04 0.03]);
+        'Position',[0.95 0.745 0.04 0.03]);
 end
 
 hrunGA=uicontrol(hTGAga, 'Style', 'pushbutton', ...
@@ -275,7 +275,7 @@ function help_cone_GA(hObject, eventdata)
 open('Help_cone_GA.txt');
 end
 
-function variables_cb(hObject, eventdata)
+function variables_cb(hObject, eventdata,type)
 handles = guidata(hObject);
 [FDS_file, handles.template_path]=uigetfile('*.fds', 'Choose FDS Input File', handles.template_path);
 if (~isequal(FDS_file,0) && ~isequal(handles.template_path,0))
@@ -283,8 +283,12 @@ handles.template = fullfile(handles.template_path, FDS_file);
 open(handles.template);
 %[Exe_file, Exe_path]=uigetfile('*.exe', 'Choose Executive File');
 handles.FdsExe = 'fds5.exe';
-handles.GA.weights = [985/1000, 15/1000];
 
+if strcmp(type, 'TGA')
+    handles.GA.weights = [492/1000,493/1000, 15/1000];
+else
+    handles.GA.weights = [1 0 0];
+end
 guidata(hObject,handles);
 
 handles.GA.hvariables = figure('Visible','off',...
@@ -296,7 +300,7 @@ handles.GA.hvariables = figure('Visible','off',...
       'Units', 'normalized', ...
       'Position',[0.4,0.6,0.4,0.7]);
 % Add items for GUI
-handles = AddVar(handles);
+handles = AddVar(handles,type);
 guidata(hObject, handles);
 % save handles
    guidata(handles.GA.hvariables,handles)
@@ -330,7 +334,7 @@ handles.GA.data(nItem).check = get(hObject,'Value');
 guidata(hObject,handles);
 end
 
-function handles = AddVar(handles)
+function handles = AddVar(handles,type)
     h = 0.035;
     w = 0.05;
     d = 0.04;
@@ -344,20 +348,45 @@ function handles = AddVar(handles)
    'Units', 'normalized', ...
    'Callback', @var_cb, ...
    'Position',[0.25 0.96 w h]);
-    hAw = uicontrol(handles.GA.hvariables,'Style','text',...
-   'String', 'Weight of A',...
-   'Units', 'normalized', ...
-   'Position',[0.35 0.965 0.2 0.02]);
-    hAw2 = uicontrol(handles.GA.hvariables,'Style','edit',...
-   'String',num2str(handles.GA.Aw),...
-   'BackgroundColor', 'w',...
-   'Units', 'normalized', ...
-   'Callback', @weights_cb, ...
-   'Position',[0.52 0.96 w h]);
-    hAw3 = uicontrol(handles.GA.hvariables,'Style','text',...
-   'String', '/ 1000',...
-   'Units', 'normalized', ...
-   'Position',[0.58 0.96 0.08 0.02]);
+    if strcmp(type, 'TGA')
+       
+        hAw = uicontrol(handles.GA.hvariables,'Style','text',...
+           'String', 'Weights (%)',...
+           'Units', 'normalized', ...
+           'Position',[0.31 0.965 0.2 0.02]);
+        
+       text1 = uicontrol(handles.GA.hvariables,'Style','text',...
+           'String', 'Mass',...
+           'Units', 'normalized', ...
+           'Position',[0.5 0.965 w+0.02 0.02]);
+       hAw2 = uicontrol(handles.GA.hvariables,'Style','edit',...
+           'String',num2str(handles.GA.weights(1)*100),...
+           'BackgroundColor', 'w',...
+           'Units', 'normalized', ...
+           'Callback', @w_mass_cb, ...
+           'Position',[0.6 0.96 w+0.02 h]);
+        text2 = uicontrol(handles.GA.hvariables,'Style','text',...
+           'String', 'Grad.',...
+           'Units', 'normalized', ...
+           'Position',[0.68 0.965 w+0.02 0.02]);
+       hAw3 = uicontrol(handles.GA.hvariables,'Style','edit',...
+           'String',num2str(handles.GA.weights(2)*100),...
+           'BackgroundColor', 'w',...
+           'Units', 'normalized', ...
+           'Callback', @w_grad_cb, ...
+           'Position',[0.75 0.96 w+0.02 h]);
+       text1 = uicontrol(handles.GA.hvariables,'Style','text',...
+           'String', 'A',...
+           'Units', 'normalized', ...
+           'Position',[0.82 0.965 w+0.02 0.02]);
+       hAw4 = uicontrol(handles.GA.hvariables,'Style','edit',...
+           'String',num2str(handles.GA.weights(3)*100),...
+           'BackgroundColor', 'w',...
+           'Units', 'normalized', ...
+           'Callback', @w_A_cb, ...
+           'Position',[0.89 0.96 w+0.02 h]);
+        
+    end
     hisA = uicontrol(handles.GA.hvariables,'Style','text',...
    'String', 'A',...
    'Units', 'normalized', ...
@@ -459,11 +488,24 @@ end
 guidata(hObject,handles);
 end
 
-function weights_cb(hObject, eventdata)
+function w_mass_cb(hObject, eventdata)
 handles = guidata(hObject);
 w = str2double(get(hObject, 'string'));
-handles.GA.Aw = w;
-handles.GA.weights = [(1000-w)/1000, w/1000];
+handles.GA.weights(1) = w./100;
+guidata(hObject,handles);
+end
+
+function w_grad_cb(hObject, eventdata)
+handles = guidata(hObject);
+w = str2double(get(hObject, 'string'));
+handles.GA.weights(2) = w./100;
+guidata(hObject,handles);
+end
+
+function w_A_cb(hObject, eventdata)
+handles = guidata(hObject);
+w = str2double(get(hObject, 'string'));
+handles.GA.weights(3) = w./100;
 guidata(hObject,handles);
 end
 
@@ -506,32 +548,32 @@ handles = guidata(hObject);
 [v, cdir] = system('cd');
 [Exe_file, handles.FdsExe_path]=uigetfile('*.exe', 'Choose Executive File', handles.FdsExe_path);
 handles.FdsExe = fullfile(handles.FdsExe_path,Exe_file);
-k=1;
-for i=1:min(length(handles.FdsExe),length(cdir))
-    if handles.FdsExe(i)==cdir(i)
-        k=k+1;
-    else
-        break;
-    end
-end
-l=0;
-if length(cdir) > k
-    l=1;
-    for i=k:length(cdir)
-        if cdir(i)=='\'
-            l=l+1;
-        end
-    end
-end
-s = [];
-for i=1:l
-    s = [s '..\'];
-end
-if handles.FdsExe(k)=='\'
-    k=k+1;
-end
-handles.FdsExe = handles.FdsExe(k:length(handles.FdsExe));
-handles.FdsExe = ['"' s handles.FdsExe '"'];
+% k=1;
+% for i=1:min(length(handles.FdsExe),length(cdir))
+%     if handles.FdsExe(i)==cdir(i)
+%         k=k+1;
+%     else
+%         break;
+%     end
+% end
+% l=0;
+% if length(cdir) > k
+%     l=1;
+%     for i=k:length(cdir)
+%         if cdir(i)=='\'
+%             l=l+1;
+%         end
+%     end
+% end
+% s = [];
+% for i=1:l
+%     s = [s '..\'];
+% end
+% if handles.FdsExe(k)=='\'
+%     k=k+1;
+% end
+%handles.FdsExe = handles.FdsExe(k:length(handles.FdsExe));
+%handles.FdsExe = ['"' s handles.FdsExe '"'];
 set(handles.GA.hexe, 'String', ['Executive file: ' handles.FdsExe]);
 guidata(hObject,handles);
 end
@@ -561,7 +603,7 @@ handles = guidata(hObject);
 uiresume(handles.GA.hvariables);
 end
 %-----------------------------------
-function parameters_cb(hObject, eventdata)
+function parameters_cb(hObject, eventdata, type)
 handles = guidata(hObject);
 handles.GA.par = [];
 guidata(hObject, handles);
@@ -574,7 +616,9 @@ handles.GA.hparameters = figure('Visible','off',...
       'Units', 'normalized', ...
       'Position',[0.4,0.6,0.4,0.5]);
     % Add items for GUI
-    handles = AddPar(handles);
+   
+    handles = AddPar(handles,type);
+    
     % save handles
    guidata(handles.GA.hparameters,handles);
    % Assign the GUI a name to appear in the window title.
@@ -590,7 +634,7 @@ handles.GA.hparameters = figure('Visible','off',...
    close(handles.GA.hparameters);
 end
 
-function handles = AddPar(handles)
+function handles = AddPar(handles, type)
     hNpar = uicontrol(handles.GA.hparameters,'Style','text',...
    'String', 'Number of Parameters',...
    'Units', 'normalized', ...
@@ -599,13 +643,14 @@ function handles = AddPar(handles)
    'String','N',...
    'BackgroundColor', 'w',...
    'Units', 'normalized', ...
-   'Callback', @par_cb, ...
+   'Callback', {@par_cb,type}, ...
    'Position',[0.25 0.93 0.08 0.05]);
     hHelp = uicontrol(handles.GA.hparameters, 'Style', 'pushbutton', ...
    'String', 'HELP!', ...
    'Callback', @helpPar_cb, ...
    'Units', 'normalized', ...
    'Position', [0.5 0.93 0.1 0.04]);
+    
     hrampT = uicontrol(handles.GA.hparameters,'Style','text',...
    'String', 't(T_MAX)',...
    'Units', 'normalized', ...
@@ -622,9 +667,16 @@ function handles = AddPar(handles)
    'String', 'Mass fraction',...
    'Units', 'normalized', ...
    'Position',[0.4 0.85 0.1 0.05]);
+    % Add parameter for cone heater radiation level!
+    
+   %hCone = uicontrol(handles.GA.hparameters,'Style','text',...
+   %'String', 'TWFIN',...
+   %'Units', 'normalized', ...
+   %'Position',[0.2 0.85 0.1 0.05]);
+    
     hOkpar = uicontrol(handles.GA.hparameters, 'Style', 'pushbutton', ...
    'String', 'OK', ...
-   'Callback', @okpar_cb, ...
+   'Callback', {@okpar_cb,type}, ...
    'Units', 'normalized', ...
    'Position', [0.35 0.01 0.1 0.04]);
     hcancelPar = uicontrol(handles.GA.hparameters, 'Style', 'pushbutton', ...
@@ -636,10 +688,11 @@ function handles = AddPar(handles)
     handles = guidata(handles.GA.hparameters);
 end
 
-function par_cb (hObject, eventdata)
+function par_cb (hObject, eventdata, type)
 handles = guidata(hObject);
 par = str2double(get(hObject, 'string'));
 handles.GA.parameters = par;
+
 handles.GA.Tini = 20;
 handles.GA.checkbox = [];
 handles.GA.Hres = zeros(par, 2);
@@ -647,10 +700,12 @@ handles.GA.moisture = 0;
 % handles.GA.RampT = 0;
 handles.GA.Tindex = 0; 
 handles.GA.Findex = 0;
-handles.GA.Rindex = [];
-handles.GA.Mindex = [];
+handles.GA.Rindex = []; %residue
+handles.GA.Mindex = []; %mass fraction
+
 guidata(hObject, handles);
 for i=1:par
+ 
     handles.GA.par(i).T = 0; % 0 if not checked
     handles.GA.par(i).F = 0;
     handles.GA.par(i).R = 0;
@@ -682,7 +737,10 @@ for i=1:par
       'Units', 'normalized', ...
       'Value',0,...
       'Position',[0.435 0.86-i*0.06 0.8 0.05]);
-  handles.GA.checkbox(i,:) = [hT hF hR hM];
+  
+    handles.GA.checkbox(i,:) = [hT hF hR hM];
+    
+  
 end
 guidata(hObject, handles);
 %handles = guidata(hObject);
@@ -814,10 +872,12 @@ end
 guidata(hObject,handles);
 end
 
-function residue_cb(hObject, eventdata, N)
+function residue_cb(hObject, eventdata, N,type)
 handles = guidata(hObject);
 handles.GA.par(N).R = get(hObject,'Value');
-if get(hObject, 'Value')==1
+
+ if get(hObject, 'Value')==1
+    
     handles.GA.Rindex(length(handles.GA.Rindex)+1)=N;
     if handles.GA.par(N).T==1
             delete(handles.GA.hTfin);
@@ -840,6 +900,7 @@ if get(hObject, 'Value')==1
    'String', 'Corresponding variable: VAR ',...
    'Units', 'normalized', ...
    'Position',[0.48 0.85-N*0.06 0.35 0.05]);
+    
 if isfield(handles.GA, 'variables')
     s = ['{'];
     for i=1:handles.GA.variables
@@ -1011,7 +1072,7 @@ guidata(handles.GA.hMassFraction,handles);
 uiresume(handles.GA.hMassFraction);
 end
 
-function okpar_cb(hObject, eventdata)
+function okpar_cb(hObject, eventdata,type)
 handles = guidata(hObject);
     
 for i =1:handles.GA.parameters
@@ -1027,7 +1088,6 @@ if strcmp(get(handles.GA.hTfinE, 'String'), '') && any(cell2mat(get(handles.GA.c
     return
 end
 end
-
     TRamp = 0;
     k=0;
     NR=0;
@@ -1069,7 +1129,7 @@ for i =1:handles.GA.parameters
     handles.GA.P(6+NR:5+NR+NM) = handles.GA.massfraction;
     end
 end
-
+    
 if handles.GA.Tindex ~= 0
     if handles.GA.Findex ~= 0
        handles.GA.Pindex = [handles.GA.Tindex, handles.GA.Findex, handles.GA.Rindex, handles.GA.Mindex];
@@ -1194,7 +1254,7 @@ if isfield(handles.GA, 'variables')==0
 end
 
 if ~exist('recombin.m','file')
-   msgbox('Add to Matlab path genetic algorithm toolbox from Palo\FIRAS\Tutkimus\Osatehtävä 1\PyroPlot\PyroPlotModified and the modifications from Palo\FIRAS\Tutkimus\Osatehtävä 1\PyroPlot\GA_modified.');
+   msgbox('Add genetic algorithm toolbox to your Matlab path');
     return
 end
 
@@ -1219,14 +1279,14 @@ for i=1:length(handles.GA.data)
     end
 end
 else
+    ox = 0; % if oxygen limited cone exists, ox = 1
     for i=1:length(handles.GA.data)
     if (handles.GA.data(i).check)
         %HRR or MLR ??
         X = get(handles.hDataType, 'Value');
         Mass = [];
         dataType = 1;
-        Mass_h = handles.GA.data(i).HRR;
-        Mass_m = handles.GA.data(i).MLR;
+        
                 
         switch X
             case 1
@@ -1237,22 +1297,42 @@ else
                 dataType = 2;
         end
         
-        if (handles.Options.NFilter(1)>1)
-        y(:,1)=filtNs(Mass_h,handles.Options.NFilter(1));
-        y(:,2)=filtNs(Mass_m,handles.Options.NFilter(1));
+        if strcmp(handles.GA.data(i).gas,'Air')
+            Mass_h = handles.GA.data(i).HRR;
+            Mass_m = handles.GA.data(i).MLR;
+            if (handles.Options.NFilter(1)>1)
+            y(:,1)=filtNs(Mass_h,handles.Options.NFilter(1));
+            y(:,2)=filtNs(Mass_m,handles.Options.NFilter(1));
+            else
+            y(:,1) = Mass_h;
+            y(:,2) = Mass_m;
+            end
+        elseif strcmp(handles.GA.data(i).gas,'N2')
+            ox = 1;
+            if (handles.Options.NFilter(1)>1)
+               y(:,1) =  filtNs(handles.GA.data(i).MLR,handles.Options.NFilter(1));
+            else
+               y(:,1) = handles.GA.data(i).MLR;
+            end
         else
-        y(:,1) = Mass_h;
-        y(:,2) = Mass_m;
+            msgbox('Error');
+            
         end
+        
         n = n+1;
         data(n).Type = 'Cone';
         data(n).T = handles.GA.data(i).time;
         data(n).M = y;
         data(n).A = handles.GA.data(i).A;
         data(n).dataType = dataType;
+        data(n).gas = handles.GA.data(i).gas;
     end
     handles.GA.moisture = 0;
     end
+end
+
+if strcmp(data(1).Type,'Cone') && ox == 1 %write oxygen cone fds-input
+    new_file = change_input_ambient(handles.template);
 end
 
 if n==0

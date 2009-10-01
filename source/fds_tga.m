@@ -12,7 +12,7 @@ function [Mass, Temp] = fds_tga(template_file, fdsexe, CHID, Chrom, LogScaling,P
 %   dT              data type: 0 for TGA, 1 for HRR and 2 for MLR
 % 
 % FDS_TGA reads the contents of the template_file and replaces every string
-% VAR#, where # is an integer, with a value of the corresponding item of
+% VAR#., where # is an integer, with a value of the corresponding item of
 % the input vector Chrom. Additionally, all the strings PAR# are replaced
 % by the values of the Par vector. The output is written to a temporary
 % file and used to run Fire Dynamics Simulator (FDS).
@@ -117,13 +117,6 @@ l=1;
     Temp(:,2) = removeNaNM(Temp(:,2),3);
     Temp(:,3) = removeNaNM(Temp(:,3),3);
 
-%[r,s]=size(Temp);
-%if r < N
-%    N=r;
-%    Mass = Mass((1:N),:);
-%end
-%Temp = Temp(1:N,:);
-
 elseif strcmp(CHID,'cone')
     file = [CHID '_hrr.csv'];
     file_devc = [CHID '_devc.csv'];
@@ -141,13 +134,6 @@ elseif strcmp(CHID,'cone')
     Temp = data(:,[2 1 3]); %HRR, time, rad_loss
     %end
 end
-
-%
-% Clean
-%
-%if length(Mass(:,2))<5
-%   stop = 'stop'; 
-%end
 
 if (1)
 eval(['delete ' data_file])

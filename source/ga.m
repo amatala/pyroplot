@@ -605,6 +605,7 @@ end
 %-----------------------------------
 function parameters_cb(hObject, eventdata, type)
 handles = guidata(hObject);
+if isfield(handles.GA, 'variables')
 handles.GA.par = [];
 guidata(hObject, handles);
 handles.GA.hparameters = figure('Visible','off',...
@@ -632,6 +633,9 @@ handles.GA.hparameters = figure('Visible','off',...
    guidata(handles.GA.hTGAga, handles);
    % update handles-data
    close(handles.GA.hparameters);
+else
+   msgbox('Define first the variables.'); 
+end
 end
 
 function handles = AddPar(handles, type)
@@ -663,10 +667,15 @@ function handles = AddPar(handles, type)
    'String', 'NU_FUEL',...
    'Units', 'normalized', ...
    'Position',[0.3 0.85 0.1 0.05]);
-    hmassfraction = uicontrol(handles.GA.hparameters,'Style','text',...
-   'String', 'Mass fraction',...
-   'Units', 'normalized', ...
-   'Position',[0.4 0.85 0.1 0.05]);
+    hramp_value = uicontrol(handles.GA.hparameters,'Style','text',...
+       'String', 'Ramp value',...
+       'Units', 'normalized', ...
+       'Position',[0.4 0.85 0.1 0.05]);
+%     hmassfraction = uicontrol(handles.GA.hparameters,'Style','text',...
+%    'String', 'Mass fraction',...
+%    'Units', 'normalized', ...
+%    'Position',[0.4 0.85 0.1 0.05]);
+
     % Add parameter for cone heater radiation level!
     
    %hCone = uicontrol(handles.GA.hparameters,'Style','text',...
@@ -710,8 +719,9 @@ for i=1:par
     handles.GA.par(i).F = 0;
     handles.GA.par(i).R = 0;
     handles.GA.par(i).res = 0; %0 if not nu_fuel, otherwise index of variable
-    handles.GA.par(i).M = 0;
-    handles.GA.par(i).massfraction = []; %empty if none, otherwise indexes
+    handles.GA.par(i).ramp = 0; %0 if not ramp_value, otherwise index of variable
+%     handles.GA.par(i).M = 0;
+%     handles.GA.par(i).massfraction = []; %empty if none, otherwise indexes
     s = ['PAR' num2str(i)];
     hpari = uicontrol(handles.GA.hparameters,'Style','text',...
    'String', s,...
@@ -732,13 +742,18 @@ for i=1:par
       'Units', 'normalized', ...
       'Value',0,...
       'Position',[0.335 0.86-i*0.06 0.8 0.05]);
-    hM = uicontrol(handles.GA.hparameters,'Style','checkbox',...
-      'CallBack', {@massfraction_cb,i},...
+    hRV = uicontrol(handles.GA.hparameters,'Style','checkbox',...
+      'CallBack', {@ramp_value_cb,i},...
       'Units', 'normalized', ...
       'Value',0,...
       'Position',[0.435 0.86-i*0.06 0.8 0.05]);
+%     hM = uicontrol(handles.GA.hparameters,'Style','checkbox',...
+%       'CallBack', {@massfraction_cb,i},...
+%       'Units', 'normalized', ...
+%       'Value',0,...
+%       'Position',[0.435 0.86-i*0.06 0.8 0.05]);
   
-    handles.GA.checkbox(i,:) = [hT hF hR hM];
+    handles.GA.checkbox(i,:) = [hT hF hR hRV];
     
   
 end
@@ -763,7 +778,7 @@ if get(hObject, 'Value')==1
     end
     handles.GA.par(N).F = 0;
     handles.GA.par(N).R = 0;
-    handles.HA.par(N).M = 0;
+    handles.HA.par(N).ramp = 0;
     set(handles.GA.checkbox(N,2), 'Value', 0);
     set(handles.GA.checkbox(N,3), 'Value', 0);
     set(handles.GA.checkbox(N,4), 'Value', 0); 
@@ -856,7 +871,7 @@ if get(hObject, 'Value')==1
     end
     handles.GA.par(N).T = 0;
     handles.GA.par(N).R = 0;
-    handles.GA.par(N).M = 0;
+    handles.GA.par(N).ramp = 0;
     set(handles.GA.checkbox(N,1), 'Value', 0);
     set(handles.GA.checkbox(N,3), 'Value', 0);
     set(handles.GA.checkbox(N,4), 'Value', 0); 
@@ -891,7 +906,7 @@ handles.GA.par(N).R = get(hObject,'Value');
     end
     handles.GA.par(N).T = 0;
     handles.GA.par(N).F = 0;
-    handles.GA.par(N).M = 0;
+    handles.GA.par(N).ramp = 0;
     set(handles.GA.checkbox(N,1), 'Value', 0);
     set(handles.GA.checkbox(N,2), 'Value', 0);    
     set(handles.GA.checkbox(N,4), 'Value', 0); 
@@ -951,12 +966,12 @@ handles.GA.par(N).res = str2double(get(hObject, 'String'));
 guidata(handles.GA.hTGAga,handles);
 end
 
-function massfraction_cb(hObject, eventdata, N)
+function ramp_value_cb(hObject, eventdata, N)
 handles = guidata(hObject);
 
-handles.GA.par(N).M = get(hObject, 'Value');
+handles.GA.par(N).ramp = get(hObject, 'Value');
 if get(hObject, 'Value')==1
-    handles.GA.Mindex=N;
+    
     if handles.GA.par(N).T==1
             delete(handles.GA.hTfin);
             delete(handles.GA.hTfinE);
@@ -973,36 +988,7 @@ if get(hObject, 'Value')==1
     set(handles.GA.checkbox(N,1), 'Value', 0);
     set(handles.GA.checkbox(N,2), 'Value', 0); 
     set(handles.GA.checkbox(N,3), 'Value', 0); 
-end
-handles.GA.hMassFraction = figure('Visible','off',...
-      'Name', 'Mass fraction', ...
-      'Menubar', 'none', ...
-      'NumberTitle', 'off', ...
-      'Toolbar', 'none', ...
-      'Color', get(0,'defaultuicontrolbackgroundcolor'), ...
-      'Units', 'normalized', ...
-      'Position',[0.4,0.6,0.25,0.13]);
-guidata(handles.GA.hTGAga,handles);
-handles = addMassF(handles,N);
-
-set(handles.GA.hMassFraction, 'Visible', 'on');
-guidata(hObject, handles);
-uiwait(handles.GA.hMassFraction);
-   % update handles-data
-   handles = guidata(handles.GA.hMassFraction);
-   guidata(handles.GA.hTGAga, handles);
-   % update handles-data
-   close(handles.GA.hMassFraction);
-guidata(hObject,handles);
-end
-
-function handles = addMassF(handles,N)
-
-hMF = uicontrol(handles.GA.hMassFraction,'Style','text',...
-   'String', 'Corresponding variables',...
-   'Units', 'normalized', ...
-   'Position',[0.1 0.9 0.5 0.1]);
-if isfield(handles.GA, 'variables')
+    %choose corresponding variable
     s = ['{'];
     for i=1:handles.GA.variables
     s = [s '''' handles.GA.var(i).id ''''];
@@ -1011,66 +997,162 @@ if isfield(handles.GA, 'variables')
     end
     end
     s =[s '}'];
-    hMFE = uicontrol(handles.GA.hMassFraction,'Style','listbox',...
+    hrv_text = uicontrol(handles.GA.hparameters,'Style','text',...
+   'String', 'VAR ',...
+   'Units', 'normalized', ...
+   'Position',[0.46 0.85-N*0.06 0.07 0.05]);
+    hrv = uicontrol(handles.GA.hparameters,'Style','popupmenu',...
    'String', eval(s),...
    'Units', 'normalized', ...
    'BackgroundColor', 'w',...
-   'Callback', @Mlist_cb, ...
-   'Min', 0,...
-   'Max',handles.GA.variables, ...
-   'Value', 1, ...
-   'Position', [0.1 0.1 0.3 0.8]);
-    handles.GA.Hres(N,:) = [hMF, hMFE];
-else
+   'Position', [0.54 0.87-N*0.06 0.1 0.04]);
+
+    hUB_text = uicontrol(handles.GA.hparameters,'Style','text',...
+   'String', 'Upper boundary: ',...
+   'Units', 'normalized', ...
+   'Position',[0.64 0.85-N*0.06 0.18 0.05]);
     
-    hMFE = uicontrol(handles.GA.hMassFraction,'Style','edit',...
+    hrv_UB = uicontrol(handles.GA.hparameters,'Style','edit',...
    'BackgroundColor', 'w',...
    'Units', 'normalized', ...
-   'Callback', {@massI_cb}, ...
-   'Position', [0.1 0.8 0.3 0.1]);
-    handles.GA.Hres(N,:) = [hMF, hMFE];
-end
-hMoisttext = uicontrol(handles.GA.hMassFraction,'Style','text', ...
-    'String', 'Moisture-%', ...
-    'Units', 'normalized', ...
-    'Position', [0.45 0.7 0.2 0.15]);
-handles.GA.hMoist = uicontrol(handles.GA.hMassFraction,'Style','edit',...
-   'BackgroundColor', 'w',...
-   'String', '0', ...
+   'Position', [0.82 0.87-N*0.06 0.07 0.04]);
+
+    hLog = uicontrol(handles.GA.hparameters,'Style','text',...
+   'String', 'Log ',...
    'Units', 'normalized', ...
-   'Position', [0.45 0.4 0.2 0.15]);
-
-handles.GA.hOKMass = uicontrol(handles.GA.hMassFraction,'Style','pushbutton',...
-   'String', 'OK', ...
-   'Units', 'normalized', ...
-   'Callback', {@massOk_cb}, ...
-   'Position', [0.75 0.5 0.15 0.15]);
-
-guidata(handles.GA.hMassFraction, handles);
-handles = guidata(handles.GA.hMassFraction);
+   'Position',[0.91 0.85-N*0.06 0.04 0.05]);
+    hLog_ch = uicontrol(handles.GA.hparameters,'Style','checkbox',...
+      'Units', 'normalized', ...
+      'Value',0,...
+      'Position',[0.96 0.86-N*0.06 0.05 0.05]);
+    handles.GA.Hramp(N,:) = [hrv_text, hrv, hUB_text, hrv_UB, hLog, hLog_ch];
 end
 
-function Mlist_cb(hObject, eventdata)
-handles = guidata(hObject);
-val = get(hObject, 'Value');
-handles.GA.massfraction = val;
-guidata(handles.GA.hMassFraction, handles);
+   guidata(handles.GA.hTGAga, handles);
+   % update handles-data
+guidata(hObject,handles);
 end
 
-function massI_cb(hObject, eventdata)
-handles = guidata(hObject);
-str = get(hObject, 'String');
-handles.GA.massfraction = str2double(str);
-guidata(handles.GA.hMassFraction,handles);
-end
+% function massfraction_cb(hObject, eventdata, N)
+% handles = guidata(hObject);
+% 
+% handles.GA.par(N).M = get(hObject, 'Value');
+% if get(hObject, 'Value')==1
+%     handles.GA.Mindex=N;
+%     if handles.GA.par(N).T==1
+%             delete(handles.GA.hTfin);
+%             delete(handles.GA.hTfinE);
+%             delete(handles.GA.hTini);
+%             delete(handles.GA.hTiniE);
+%             handles.GA = rmfield(handles.GA, 'hTfin');
+%             handles.GA = rmfield(handles.GA, 'hTfinE');
+%             handles.GA = rmfield(handles.GA, 'hTini');
+%             handles.GA = rmfield(handles.GA, 'hTiniE');
+%     end
+%     handles.GA.par(N).T = 0;
+%     handles.GA.par(N).F = 0;
+%     handles.GA.par(N).R = 0;
+%     set(handles.GA.checkbox(N,1), 'Value', 0);
+%     set(handles.GA.checkbox(N,2), 'Value', 0); 
+%     set(handles.GA.checkbox(N,3), 'Value', 0); 
+% end
+% handles.GA.hMassFraction = figure('Visible','off',...
+%       'Name', 'Mass fraction', ...
+%       'Menubar', 'none', ...
+%       'NumberTitle', 'off', ...
+%       'Toolbar', 'none', ...
+%       'Color', get(0,'defaultuicontrolbackgroundcolor'), ...
+%       'Units', 'normalized', ...
+%       'Position',[0.4,0.6,0.25,0.13]);
+% guidata(handles.GA.hTGAga,handles);
+% handles = addMassF(handles,N);
+% 
+% set(handles.GA.hMassFraction, 'Visible', 'on');
+% guidata(hObject, handles);
+% uiwait(handles.GA.hMassFraction);
+%    % update handles-data
+%    handles = guidata(handles.GA.hMassFraction);
+%    guidata(handles.GA.hTGAga, handles);
+%    % update handles-data
+%    close(handles.GA.hMassFraction);
+% guidata(hObject,handles);
+% end
 
-function massOk_cb(hObject, eventdata)
-handles = guidata(hObject);
-str= get(handles.GA.hMoist, 'String');
-handles.GA.moisture = str2double(str)./100;
-guidata(handles.GA.hMassFraction,handles);
-uiresume(handles.GA.hMassFraction);
-end
+% function handles = addMassF(handles,N)
+% 
+% hMF = uicontrol(handles.GA.hMassFraction,'Style','text',...
+%    'String', 'Corresponding variables',...
+%    'Units', 'normalized', ...
+%    'Position',[0.1 0.9 0.5 0.1]);
+% if isfield(handles.GA, 'variables')
+%     s = ['{'];
+%     for i=1:handles.GA.variables
+%     s = [s '''' handles.GA.var(i).id ''''];
+%     if i~=handles.GA.variables
+%         s = [s ','];
+%     end
+%     end
+%     s =[s '}'];
+%     hMFE = uicontrol(handles.GA.hMassFraction,'Style','listbox',...
+%    'String', eval(s),...
+%    'Units', 'normalized', ...
+%    'BackgroundColor', 'w',...
+%    'Callback', @Mlist_cb, ...
+%    'Min', 0,...
+%    'Max',handles.GA.variables, ...
+%    'Value', 1, ...
+%    'Position', [0.1 0.1 0.3 0.8]);
+%     handles.GA.Hres(N,:) = [hMF, hMFE];
+% else
+%     
+%     hMFE = uicontrol(handles.GA.hMassFraction,'Style','edit',...
+%    'BackgroundColor', 'w',...
+%    'Units', 'normalized', ...
+%    'Callback', {@massI_cb}, ...
+%    'Position', [0.1 0.8 0.3 0.1]);
+%     handles.GA.Hres(N,:) = [hMF, hMFE];
+% end
+% hMoisttext = uicontrol(handles.GA.hMassFraction,'Style','text', ...
+%     'String', 'Moisture-%', ...
+%     'Units', 'normalized', ...
+%     'Position', [0.45 0.7 0.2 0.15]);
+% handles.GA.hMoist = uicontrol(handles.GA.hMassFraction,'Style','edit',...
+%    'BackgroundColor', 'w',...
+%    'String', '0', ...
+%    'Units', 'normalized', ...
+%    'Position', [0.45 0.4 0.2 0.15]);
+% 
+% handles.GA.hOKMass = uicontrol(handles.GA.hMassFraction,'Style','pushbutton',...
+%    'String', 'OK', ...
+%    'Units', 'normalized', ...
+%    'Callback', {@massOk_cb}, ...
+%    'Position', [0.75 0.5 0.15 0.15]);
+% 
+% guidata(handles.GA.hMassFraction, handles);
+% handles = guidata(handles.GA.hMassFraction);
+% end
+
+% function Mlist_cb(hObject, eventdata)
+% handles = guidata(hObject);
+% val = get(hObject, 'Value');
+% handles.GA.massfraction = val;
+% guidata(handles.GA.hMassFraction, handles);
+% end
+% 
+% function massI_cb(hObject, eventdata)
+% handles = guidata(hObject);
+% str = get(hObject, 'String');
+% handles.GA.massfraction = str2double(str);
+% guidata(handles.GA.hMassFraction,handles);
+% end
+% 
+% function massOk_cb(hObject, eventdata)
+% handles = guidata(hObject);
+% str= get(handles.GA.hMoist, 'String');
+% handles.GA.moisture = str2double(str)./100;
+% guidata(handles.GA.hMassFraction,handles);
+% uiresume(handles.GA.hMassFraction);
+% end
 
 function okpar_cb(hObject, eventdata,type)
 handles = guidata(hObject);
@@ -1088,58 +1170,102 @@ if strcmp(get(handles.GA.hTfinE, 'String'), '') && any(cell2mat(get(handles.GA.c
     return
 end
 end
-    TRamp = 0;
-    k=0;
-    NR=0;
-    for i =1:handles.GA.parameters
-    %value of TRamp
-    if get(handles.GA.checkbox(i,1), 'Value')==1
-    Tfin = get(handles.GA.hTfinE, 'String');
-    Tini = get(handles.GA.hTiniE, 'String');
-    TRamp = str2double(Tfin)-str2double(Tini);
-    end
-    NR = NR + handles.GA.par(i).R; % number of residue variables
-    end
-    if isfield(handles.GA, 'massfraction')
-    NM = length(handles.GA.massfraction);
-    end
-    handles.GA.P(5:(4+NR))=0;
-   % if NR ~= 0
-       handles.GA.P(5)=NR; 
-   % end
-    
-    
-for i =1:handles.GA.parameters
-    
-    % if ramp T is parameter
-    if get(handles.GA.checkbox(i,1), 'Value')==1
-    
-    handles.GA.P(1)=1;
-    handles.GA.P(2)=TRamp;  
-    %if final time is parameter
-    elseif get(handles.GA.checkbox(i,2), 'Value')==1
-    handles.GA.P(3)=1;
-    handles.GA.P(4)=TRamp;
-    %if residue mass(es) is variable
-    elseif get(handles.GA.checkbox(i,3), 'Value')==1
-    k=k+1;
-    handles.GA.P(5+k) = handles.GA.par(i).res;
-    %if mass fraction is variable
-    else
-    handles.GA.P(6+NR:5+NR+NM) = handles.GA.massfraction;
+
+%-----------------------------------------------------
+%new parameter structure
+
+handles.GA.Par_struct = []; %index, values
+handles.GA.Par_struct.nu_fuel.index = [];
+handles.GA.Par_struct.ramp_value.index = [];
+for i = 1:handles.GA.parameters
+
+    if get(handles.GA.checkbox(i,1), 'Value')==1 %t(T_MAX)
+       Tfin = get(handles.GA.hTfinE, 'String');
+       Tini = get(handles.GA.hTiniE, 'String');
+       TRamp = str2double(Tfin)-str2double(Tini);
+        
+       handles.GA.Par_struct.Tmax.index = i; %can be only one
+       handles.GA.Par_struct.Tmax.values = TRamp; % temperature interval
+     
+    elseif get(handles.GA.checkbox(i,2), 'Value')==1 % t_fin
+       handles.GA.Par_struct.tfin.index = i; %can be only one
+       handles.GA.Par_struct.tfin.values = handles.GA.Par_struct.Tmax.values;
+    elseif get(handles.GA.checkbox(i,3), 'Value')==1 %nu_fuel
+        len = length(handles.GA.Par_struct.nu_fuel.index);
+        handles.GA.Par_struct.nu_fuel.index(len+1) = i;
+        handles.GA.Par_struct.nu_fuel.values(len+1) = handles.GA.par(i).res;
+%     elseif get(handles.GA.checkbox(i,4), 'Value')==1 %mass fraction
+%         len = length(handles.GA.Par_struct.mass_fraction.index);
+%         handles.GA.Par_struct.mass_fraction.index(len+1) = i;
+%         handles.GA.Par_struct.mass_fraction.M(len+1) = handles.GA.moisture;
+    elseif get(handles.GA.checkbox(i,4), 'Value')==1 %ramp_value
+        %this value hast to be greater or equal than the reference value
+        rv  = get(handles.GA.Hramp(i,2),'Value');
+        UB_val = get(handles.GA.Hramp(i,4),'String');
+        UB = str2double(UB_val);
+        Log = get(handles.GA.Hramp(i,6),'Value');
+        len = length(handles.GA.Par_struct.ramp_value.index);
+        handles.GA.Par_struct.ramp_value.index(len+1) = i;
+        handles.GA.Par_struct.ramp_value.values(len+1:len+3) = [UB,rv, Log];
+        %in groups of three: UB, rv,Log, UB, rv, Log...etc.
     end
 end
-    
-if handles.GA.Tindex ~= 0
-    if handles.GA.Findex ~= 0
-       handles.GA.Pindex = [handles.GA.Tindex, handles.GA.Findex, handles.GA.Rindex, handles.GA.Mindex];
-    else
-       handles.GA.Pindex = [handles.GA.Tindex, handles.GA.Rindex, handles.GA.Mindex]; 
-    end
-else
-    handles.GA.Pindex = [handles.GA.Rindex, handles.GA.Mindex];
-end
-[p, handles.GA.parInd] = sort(handles.GA.Pindex);
+
+%-----------------------------------------------------
+
+
+%     TRamp = 0;
+%     k=0;
+%     NR=0;
+%     for i =1:handles.GA.parameters
+%     %value of TRamp
+%     if get(handles.GA.checkbox(i,1), 'Value')==1
+%     Tfin = get(handles.GA.hTfinE, 'String');
+%     Tini = get(handles.GA.hTiniE, 'String');
+%     TRamp = str2double(Tfin)-str2double(Tini);
+%     end
+%     NR = NR + handles.GA.par(i).R; % number of residue variables
+%     end
+%     if isfield(handles.GA, 'massfraction')
+%     NM = length(handles.GA.massfraction);
+%     end
+%     handles.GA.P(5:(4+NR))=0;
+%    % if NR ~= 0
+%        handles.GA.P(5)=NR; 
+%    % end
+%     
+%     
+% for i =1:handles.GA.parameters
+%     
+%     % if ramp T is parameter
+%     if get(handles.GA.checkbox(i,1), 'Value')==1
+%     
+%     handles.GA.P(1)=1;
+%     handles.GA.P(2)=TRamp;  
+%     %if final time is parameter
+%     elseif get(handles.GA.checkbox(i,2), 'Value')==1
+%     handles.GA.P(3)=1;
+%     handles.GA.P(4)=TRamp;
+%     %if residue mass(es) is variable
+%     elseif get(handles.GA.checkbox(i,3), 'Value')==1
+%     k=k+1;
+%     handles.GA.P(5+k) = handles.GA.par(i).res;
+%     %if mass fraction is variable
+%     else
+%     handles.GA.P(6+NR:5+NR+NM) = handles.GA.massfraction;
+%     end
+% end
+%     
+% if handles.GA.Tindex ~= 0
+%     if handles.GA.Findex ~= 0
+%        handles.GA.Pindex = [handles.GA.Tindex, handles.GA.Findex, handles.GA.Rindex, handles.GA.Mindex];
+%     else
+%        handles.GA.Pindex = [handles.GA.Tindex, handles.GA.Rindex, handles.GA.Mindex]; 
+%     end
+% else
+%     handles.GA.Pindex = [handles.GA.Rindex, handles.GA.Mindex];
+% end
+% [p, handles.GA.parInd] = sort(handles.GA.Pindex);
 guidata(hObject,handles);
 uiresume(handles.GA.hparameters);
 end
@@ -1261,10 +1387,10 @@ end
 %create TGA structure
 n = 0;
 TGA = [];
-if isfield(handles.GA, 'parameters')== 0
-    handles.GA.P = [0 0 0 0];
-    handles.GA.parInd = [];
-end
+% if isfield(handles.GA, 'parameters')== 0
+%     handles.GA.P = [0 0 0 0];
+%     handles.GA.parInd = [];
+% end
 if strcmp(type,'TGA')
 for i=1:length(handles.GA.data)
     if (handles.GA.data(i).check)
@@ -1341,13 +1467,17 @@ if n==0
 end
 
 guidata(hObject, handles);
-[handles.GA.bestChrom, handles.GA.oV] = fdsga(handles.GA.estimates, data, handles.template, handles.FdsExe, handles.GA.weights, handles.GA.Aindex, handles.GA.limits, handles.GA.LogScaling, handles.GA.P, handles.GA.parInd, handles.GA.moisture);
+[handles.GA.bestChrom, handles.GA.oV, parameters] = fdsga(handles.GA.estimates, data, handles.template, handles.FdsExe, handles.GA.weights, handles.GA.Aindex, handles.GA.limits, handles.GA.LogScaling, handles.GA.Par_struct, handles.GA.moisture);
 fid = fopen('bestChrom.txt', 'w');
 fprintf(fid, '%s\n', 'Solution of GA');
 fprintf(fid, '%s\n', '');
 for i = 1:handles.GA.variables
     fprintf(fid, '%s\t', handles.GA.var(i).id);
     fprintf(fid, '%f\n', handles.GA.bestChrom(i));
+end
+for i = 1:length(parameters)
+    fprintf(fid, '%s\t', ['PAR', mat2str(i)]);
+    fprintf(fid, '%f\n', parameters(i));
 end
 fclose(fid);
 open('bestChrom.txt');

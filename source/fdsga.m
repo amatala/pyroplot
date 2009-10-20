@@ -1,4 +1,4 @@
-function [bestChrom,oV, parameters] = fdsga(estimates,data,template, FdsExe, weights, Aindex, limits, LogScaling, Par, moisture)
+function [bestChrom,oV, parameters] = fdsga(estimates,data,template, FdsExe, weights, Aindex, limits, LogScaling, Par, moisture,alg_param)
 
 % Parameters
 %
@@ -72,20 +72,20 @@ warning('off','MATLAB:dispatcher:InexactMatch');
 %Nind is the number of variables of each individual
 %FieldDR is 2xNind vector of minimum and maximum values
 %Parameters
-NIND = 20; %!!!!!!!!!!!!!!later 20
+NIND = alg_param.NIND; %!!!!!!!!!!!!!!later 20
 FieldDR = limits;
 iLogScaling = find(LogScaling);
 FieldDR(:,iLogScaling) = log10(FieldDR(:,iLogScaling));
 [mF, NVAR] = size(FieldDR); % size of FieldDR, NVAR is number of variables
 % Define GA Parameters
-GGAP = 0.8; % Generation gap 0,8
-XOVR = 0.7; % Crossover rate 0,7
-MUTR = 1/NVAR; % Mutation rate
-MAXGEN = 1200; % Maximum no. of generations
-INSR = 0.9; % Insertion rate
-SUBPOP = 4; % No. of subpopulations
-MIGR = 0.2; % Migration rate
-MIGGEN = 20; % No. of gens / migration
+GGAP = alg_param.GGAP; % Generation gap 0,8
+XOVR = alg_param.XOVR; % Crossover rate 0,7
+MUTR = alg_param.MUTR; % Mutation rate
+MAXGEN = alg_param.MAXGEN; % Maximum no. of generations
+INSR = alg_param.INSR; % Insertion rate
+SUBPOP = alg_param.SUBPOP; % No. of subpopulations
+MIGR = alg_param.MIGR; % Migration rate
+MIGGEN = alg_param.MIGGEN; % No. of gens / migration
 
 %create initial population
 %if estimates exist, add them to initial population
@@ -95,7 +95,7 @@ else
 Chrom = crtrp(SUBPOP*NIND-1, FieldDR);
 Chrom(SUBPOP*NIND,:)=estimates;
 end
-objVal = objF(Ndata, data, Chrom, LogScaling, template, FdsExe, weights, Aindex, limits, Par, moisture);
+objVal = objF(Ndata, data, Chrom, LogScaling, template, FdsExe, weights, Aindex, limits, Par, moisture,alg_param);
 [bestEver,line] = min(objVal);
 gen = 0;
 set(fitness, 'Visible', 'on');
@@ -111,7 +111,7 @@ SelCh = recombin('recdis', SelCh, XOVR, SUBPOP); %xovsh - 0.7
 %mutate offsprings
 SelCh = mutate('mutbga',SelCh,FieldDR,MUTR, SUBPOP);
 % Calculate objective function for offsprings
-ObjVOff = objF(Ndata, data, SelCh, LogScaling, template, FdsExe, weights, Aindex, limits, Par, moisture);
+ObjVOff = objF(Ndata, data, SelCh, LogScaling, template, FdsExe, weights, Aindex, limits, Par, moisture,alg_param);
 % Insert best offspring replacing worst parents
 [Chrom, objVal] = reins(Chrom, SelCh, SUBPOP,[1, INSR], objVal, ObjVOff);
 
@@ -163,6 +163,10 @@ for k=1:Ndata
 %     L = length(par);
     
     N_param = 0;
+    if ~isfield(Par,'nu_fuel')
+        Par.nu_fuel.index = [];
+        Par.ramp_value.index = [];
+    end
     if isfield(Par, 'Tmax')
        N_param = 1; 
     end
@@ -314,6 +318,13 @@ elseif strcmp(data(1).Type,'Cone')
 end
 set(bestIndividual, 'Visible', 'on');
 
+%print the best individual on screen
+Generation = gen
+for i = 1:length(Chrom(line,:))
+    s = ['VAR', mat2str(i), ' = ', mat2str(Chrom(line,i))];
+    eval(s)
+end
+
 gen = gen+1;
 end %end of while
 
@@ -338,6 +349,10 @@ end
 
 for k=1:Ndata
     N_param = 0;
+    if ~isfield(Par,'nu_fuel')
+        Par.nu_fuel.index = [];
+        Par.ramp_value.index = [];
+    end
     if isfield(Par, 'Tmax')
        N_param = 1; 
     end
@@ -490,7 +505,12 @@ elseif strcmp(data(1).Type,'Cone')
 end
 
 if strcmp(data(1).Type,'TGA') %gradient
+    
     N_param = 0;
+    if ~isfield(Par,'nu_fuel')
+        Par.nu_fuel.index = [];
+        Par.ramp_value.index = [];
+    end
     if isfield(Par, 'Tmax')
        N_param = 1; 
     end
@@ -609,7 +629,7 @@ end %end of function
 
 %----------------------------------------------------------------------
 
-function objVal=objF(Ndata, data, Chrom, LogScaling, template, FdsExe, weights, Aindex, limits, Par, moisture)
+function objVal=objF(Ndata, data, Chrom, LogScaling, template, FdsExe, weights, Aindex, limits, Par, moisture,alg_param)
 %time, data are experimental data
     
     %weights = [985/1000 15/1000]; %weights of fitness function: 1. data 2. gradient 3.penalty of A
@@ -621,6 +641,11 @@ function objVal=objF(Ndata, data, Chrom, LogScaling, template, FdsExe, weights, 
     SV = 0; %SV is the scaling value, sum of squares
     rdata = [];
     dataMod = [];
+    N_param = 0;
+    if ~isfield(Par,'nu_fuel')
+        Par.nu_fuel.index = [];
+        Par.ramp_value.index = [];
+    end
     for k = 1:Ndata
         N_param = 0;
     if isfield(Par, 'Tmax')
@@ -629,9 +654,10 @@ function objVal=objF(Ndata, data, Chrom, LogScaling, template, FdsExe, weights, 
     if isfield(Par, 'tfin')
        N_param = N_param + 1;
     end
+    
     N_param = N_param + length(Par.nu_fuel.index);
     N_param = N_param + length(Par.ramp_value.index);
-    
+   
     parameters = zeros(1,N_param);
     
     if isfield(Par, 'Tmax')
@@ -748,15 +774,73 @@ function objVal=objF(Ndata, data, Chrom, LogScaling, template, FdsExe, weights, 
     %Mass
     dataMod = data(k).M(l:length(data(k).T));   
     Mass(:,2)=Mass(:,2)./max(Mass(:,2)); %scale
-    SV = sum((dataMod-mean(dataMod)).^2);   
-    R(k) = sum((dataMod-Mass(:,2)).^2); 
+    %SV = sum((dataMod-mean(dataMod)).^2);   
+    %R(k) = sum((dataMod-Mass(:,2)).^2); 
+    %if some parts of the data is weighted
+    SV = sum((dataMod-mean(dataMod)).^2); 
+    if isfield(alg_param, 'index')    
+        R_1 = 0;
+        i_min = min(alg_param.index(:,1));
+        
+        L = 0;
+        if i_min > 1
+            R_2 = sum((dataMod(1:i_min-1)-Mass(1:i_min-1,2)).^2);
+        else
+            R_2 = 0;
+        end
+        for ii = 1:length(alg_param.index(:,1))
+            i1 = alg_param.index(ii,1);
+            i2 = alg_param.index(ii,2);
+            L = L+i2-i1-1;
+            R_1 = R_1 + sum((dataMod(i1:i2)-Mass(i1:i2,2)).^2);
+            if ii < length(alg_param.index(:,1))
+                i3 = alg_param.index(ii+1,1)+1; 
+            else
+                i3 = length(dataMod);
+            end
+            R_2 = R_2 + sum((dataMod(i2+1:i3)-Mass(i2+1:i3,2)).^2);
+        end
+        R_2 = sum((dataMod-Mass(:,2)).^2);
+        R(k) = (alg_param.weight*R_1+R_2)/(alg_param.weight*L+length(dataMod)-L); 
+    else 
+        R(k) = sum((dataMod-Mass(:,2)).^2); 
+    end
     rdata_mass = weights(1)*(1-(SV-R(k))/SV);
     
     %Gradient
     grad_Mod = -gradient(data(k).M(l:length(data(k).T)),data(k).T(l:length(data(k).T)));   
     grad_exp = -gradient(Mass(:,2),data(k).T(l:length(data(k).T)));
     SV_grad = sum((grad_Mod-mean(grad_Mod)).^2);   
-    R_grad = sum((grad_Mod-grad_exp).^2); 
+    %R_grad = sum((grad_Mod-grad_exp).^2); 
+    
+    if isfield(alg_param, 'index')    
+        R_1 = 0;
+        i_min = min(alg_param.index(:,1));
+        
+        L = 0;
+        if i_min > 1
+            R_2 = sum((grad_Mod(1:i_min-1)-grad_Exp(1:i_min-1,2)).^2);
+        else
+            R_2 = 0;
+        end
+        for ii = 1:length(alg_param.index(:,1))
+            i1 = alg_param.index(ii,1);
+            i2 = alg_param.index(ii,2);
+            L = L+i2-i1-1;
+            R_1 = R_1 + sum((grad_Mod(i1:i2)-grad_exp(i1:i2,2)).^2);
+            if ii < length(alg_param.index(:,1))
+                i3 = alg_param.index(ii+1,1)+1; 
+            else
+                i3 = length(grad_Mod);
+            end
+            R_2 = R_2 + sum((grad_Mod(i2+1:i3)-grad_exp(i2+1:i3,2)).^2);
+        end
+        R_2 = sum((grad_Mod-grad_exp(:,2)).^2);
+        R_grad = (alg_param.weight*R_1+R_2)/(alg_param.weight*L+length(grad_Mod)-L); 
+    else 
+        R_grad = sum((grad_Mod-grad_exp(:,2)).^2); 
+    end
+    
     rdata_grad = weights(2)*(1-(SV_grad-R_grad)/SV_grad);
     
     rdata(k) = rdata_mass + rdata_grad;
@@ -764,19 +848,77 @@ function objVal=objF(Ndata, data, Chrom, LogScaling, template, FdsExe, weights, 
     elseif strcmp(data(1).Type,'Cone')     
     dataMod(:,1) = data(k).M(l:length(data(k).T),2);     
     SV_2 = sum((dataMod(:,1)-mean(dataMod(:,1))).^2);  
-    R_2(k) = sum((dataMod(:,1)-Mass(:,2)).^2); 
+    %R_2(k) = sum((dataMod(:,1)-Mass(:,2)).^2); 
+    
+    if isfield(alg_param, 'index')    
+        R1 = 0;
+        i_min = min(alg_param.index(:,1));
+        
+        L = 0;
+        if i_min > 1
+            R2 = sum((dataMod(1:i_min-1,1)-Mass(1:i_min-1,2)).^2);
+        else
+            R2 = 0;
+        end
+        for ii = 1:length(alg_param.index(:,1))
+            i1 = alg_param.index(ii,1);
+            i2 = alg_param.index(ii,2);
+            L = L+i2-i1-1;
+            R1 = R1 + sum((dataMod(i1:i2,1)-Mass(i1:i2,2)).^2);
+            if ii < length(alg_param.index(:,1))
+                i3 = alg_param.index(ii+1,1)+1; 
+            else
+                i3 = length(dataMod(:,1));
+            end
+            R2 = R2 + sum((dataMod(i2+1:i3,1)-Mass(i2+1:i3,2)).^2);
+        end
+        R2 = sum((dataMod(:,1)-Mass(:,2)).^2);
+        R_2(k) = (alg_param.weight*R1+R2)/(alg_param.weight*L+length(dataMod(:,1))-L); 
+    else 
+        R_2(k) = sum((dataMod(:,1)-Mass(:,2)).^2); 
+    end
+    
     rdata_2 = 1-(SV_2-R_2(k))/SV_2;
     
     if strcmp(data(k).gas,'Air')
             dataMod(:,2) = data(k).M(l:length(data(k).T),1);
             SV_1 = sum((dataMod(:,2)-mean(dataMod(:,2))).^2); 
-            R_1(k) = sum((dataMod(:,2)-Mass(:,1)).^2); 
-            rdata_1 = 1-(SV_1-R_1(k))/SV_1;
-            rdata(k) = (rdata_1+ rdata_1)/2;
+           % R_1(k) = sum((dataMod(:,2)-Mass(:,1)).^2);
             
+            if isfield(alg_param, 'index')    
+                R1 = 0;
+                i_min = min(alg_param.index(:,1));
+
+                L = 0;
+                if i_min > 1
+                    R2 = sum((dataMod(1:i_min-1,2)-Mass(1:i_min-1,1)).^2);
+                else
+                    R2 = 0;
+                end
+                for ii = 1:length(alg_param.index(:,1))
+                    i1 = alg_param.index(ii,1);
+                    i2 = alg_param.index(ii,2);
+                    L = L+i2-i1-1;
+                    R1 = R1 + sum((dataMod(i1:i2,2)-Mass(i1:i2,1)).^2);
+                    if ii < length(alg_param.index(:,1))
+                        i3 = alg_param.index(ii+1,1)+1; 
+                    else
+                        i3 = length(dataMod(:,2));
+                    end
+                    R2 = R2 + sum((dataMod(i2+1:i3,2)-Mass(i2+1:i3,1)).^2);
+                end
+                R2 = sum((dataMod(:,2)-Mass(:,1)).^2);
+                R_1(k) = (alg_param.weight*R1+R2)/(alg_param.weight*L+length(dataMod(:,2))-L); 
+            else 
+                R_1(k) = sum((dataMod(:,2)-Mass(:,1)).^2); 
+            end
+
+            rdata_1 = 1-(SV_1-R_1(k))/SV_1;
+            rdata(k) = (rdata_1+ rdata_2)/2;
+
     else
         rdata(k) = rdata_2;
-        
+
     end
     end
     

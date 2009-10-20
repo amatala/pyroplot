@@ -15,6 +15,17 @@ handles.GA.Aw = 15;
 handles.GA.P = zeros(1,4); %parameters
 handles.GA.parInd = [];
 
+%algorithm parameters
+handles.GA.NIND = 20;
+handles.GA.MAXGEN = 1200;
+handles.GA.MIGGEN = 20;
+handles.GA.MUTR = 0.15;
+handles.GA.SUBPOP = 4;
+handles.GA.GGAP = 0.8;
+handles.GA.XOVR = 0.7;
+handles.GA.INSR = 0.9;
+handles.GA.MIGR = 0.2;
+
 if (strcmp(type,'TGA') || strcmp(type,'TGAFDS'))
 for i=1:lines
    if (strcmp(handles.EXPDATA(i).type,'TGA') || strcmp(handles.EXPDATA(i).type,'TGAFDS'))
@@ -121,23 +132,29 @@ if strcmp(type,'Cone')
         'Position',[0.95 0.745 0.04 0.03]);
 end
 
+hAlgorithm = uicontrol(hTGAga, 'Style', 'pushbutton', ...
+   'String', 'Algorithm', ...
+   'Callback', {@GA_param_cb,type}, ...
+   'Units', 'normalized', ...
+   'Position', [0.76 0.67 0.1 0.04]);
+
 hrunGA=uicontrol(hTGAga, 'Style', 'pushbutton', ...
    'String', 'Run GA', ...
    'Callback', {@runGA, type}, ...
    'Units', 'normalized', ...
-   'Position', [0.76 0.67 0.1 0.04]);
+   'Position', [0.76 0.61 0.1 0.04]);
 
 hstopGA=uicontrol(hTGAga, 'Style', 'pushbutton', ...
    'String', 'STOP', ...
    'Callback', @stopGA_cb, ...
    'Units', 'normalized', ...
-   'Position', [0.76 0.61 0.1 0.04]);
+   'Position', [0.76 0.55 0.1 0.04]);
 
 hclosega=uicontrol(hTGAga, 'Style', 'pushbutton', ...
    'String', 'Close', ...
    'Callback', @closeGA_cb, ...
    'Units', 'normalized', ...
-   'Position', [0.76 0.55 0.1 0.04]);
+   'Position', [0.76 0.49 0.1 0.04]);
 
 %hfocus = uicontrol(hTGAga, 'Style', 'pushbutton', ...
 %   'String', 'Focus', ...
@@ -1271,6 +1288,19 @@ uiresume(handles.GA.hparameters);
 end
 
 %-----------------
+
+function GA_param_cb(hObject, eventdata,type) %GA parameters
+
+handles = guidata(hObject);
+if isfield(handles.GA, 'variables')
+handles = Add_GA_param(handles, type);
+
+guidata(handles.GA.hTGAga, handles);
+else
+    msgbox('Choose first the experimental data.');
+end
+end
+
 function initialEstimates_cb(hObject, eventdata)
     handles = guidata(hObject);
     handles.GA.estimates = zeros(1,handles.GA.variables);
@@ -1384,6 +1414,12 @@ if ~exist('recombin.m','file')
     return
 end
 
+if ~isfield(handles.GA, 'Par_struct')
+    handles.GA.Par_struct = [];
+    handles.GA.Par_struct.nu_fuel.index = [];
+    handles.GA.Par_struct.ramp_value.index = [];
+end
+
 %create TGA structure
 n = 0;
 TGA = [];
@@ -1466,8 +1502,26 @@ if n==0
     return;
 end
 
+%parameters of algorithm
+alg_param = [];
+if isfield(handles.GA, 'weight_index')
+   if ~isempty(handles.GA.weight_index(:,1))
+       alg_param.index = handles.GA.weight_index;
+       alg_param.weight = handles.GA.exp_weight;
+   end
+end
+alg_param.NIND = handles.GA.NIND;
+alg_param.GGAP = handles.GA.GGAP;
+alg_param.XOVR = handles.GA.XOVR;
+alg_param.MUTR = handles.GA.MUTR;
+alg_param.MAXGEN = handles.GA.MAXGEN;
+alg_param.INSR = handles.GA.INSR;
+alg_param.SUBPOP = handles.GA.SUBPOP;
+alg_param.MIGR = handles.GA.MIGR;
+alg_param.MIGGEN = handles.GA.MIGGEN;
+
 guidata(hObject, handles);
-[handles.GA.bestChrom, handles.GA.oV, parameters] = fdsga(handles.GA.estimates, data, handles.template, handles.FdsExe, handles.GA.weights, handles.GA.Aindex, handles.GA.limits, handles.GA.LogScaling, handles.GA.Par_struct, handles.GA.moisture);
+[handles.GA.bestChrom, handles.GA.oV, parameters] = fdsga(handles.GA.estimates, data, handles.template, handles.FdsExe, handles.GA.weights, handles.GA.Aindex, handles.GA.limits, handles.GA.LogScaling, handles.GA.Par_struct, handles.GA.moisture,alg_param);
 fid = fopen('bestChrom.txt', 'w');
 fprintf(fid, '%s\n', 'Solution of GA');
 fprintf(fid, '%s\n', '');

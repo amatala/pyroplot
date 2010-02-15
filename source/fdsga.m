@@ -101,6 +101,7 @@ gen = 0;
 set(fitness, 'Visible', 'on');
 xlabel('Generation');
 ylabel('Fitness value');
+
 while gen < MAXGEN && ~exist('ga.stop','file') 
     %get Fitness Values
 FitnV = ranking(objVal,[2,1],SUBPOP);
@@ -319,11 +320,29 @@ end
 set(bestIndividual, 'Visible', 'on');
 
 %print the best individual on screen
-Generation = gen
+fid = fopen('bestChrom.csv', 'a');
+
+str = [mat2str(gen), ','];
 for i = 1:length(Chrom(line,:))
-    s = ['VAR', mat2str(i), ' = ', mat2str(Chrom(line,i))];
-    eval(s)
+    str = [str, mat2str(Chrom(line,i)), ','];
 end
+
+if ~isempty(Par.nu_fuel.index)
+   for i = 1:length(Par.ramp_value.index)
+       val = parameters(Par.ramp_value.index(i));
+      str = [str,  mat2str(val),','];
+   end
+end
+
+if gen == 0
+    str = [str, mat2str(best(1))];
+else
+    str = [str, mat2str(best(gen))];
+end
+
+fprintf(fid, '%s\n', str);
+
+fclose(fid);
 
 gen = gen+1;
 end %end of while
@@ -779,29 +798,33 @@ function objVal=objF(Ndata, data, Chrom, LogScaling, template, FdsExe, weights, 
     %if some parts of the data is weighted
     SV = sum((dataMod-mean(dataMod)).^2); 
     if isfield(alg_param, 'index')    
-        R_1 = 0;
-        i_min = min(alg_param.index(:,1));
-        
-        L = 0;
-        if i_min > 1
-            R_2 = sum((dataMod(1:i_min-1)-Mass(1:i_min-1,2)).^2);
-        else
-            R_2 = 0;
-        end
-        for ii = 1:length(alg_param.index(:,1))
-            i1 = alg_param.index(ii,1);
-            i2 = alg_param.index(ii,2);
-            L = L+i2-i1-1;
-            R_1 = R_1 + sum((dataMod(i1:i2)-Mass(i1:i2,2)).^2);
-            if ii < length(alg_param.index(:,1))
-                i3 = alg_param.index(ii+1,1)+1; 
+        if ~isequal(alg_param.index(1,1),0)
+            R_1 = 0;
+            i_min = min(alg_param.index(:,1));
+
+            L = 0;
+            if i_min > 1
+                R_2 = sum((dataMod(1:i_min-1)-Mass(1:i_min-1,2)).^2);
             else
-                i3 = length(dataMod);
+                R_2 = 0;
             end
-            R_2 = R_2 + sum((dataMod(i2+1:i3)-Mass(i2+1:i3,2)).^2);
+            for ii = 1:length(alg_param.index(:,1))
+                i1 = alg_param.index(ii,1);
+                i2 = alg_param.index(ii,2);
+                L = L+i2-i1-1;
+                R_1 = R_1 + sum((dataMod(i1:i2)-Mass(i1:i2,2)).^2);
+                if ii < length(alg_param.index(:,1))
+                    i3 = alg_param.index(ii+1,1)+1; 
+                else
+                    i3 = length(dataMod);
+                end
+                R_2 = R_2 + sum((dataMod(i2+1:i3)-Mass(i2+1:i3,2)).^2);
+            end
+            R_2 = sum((dataMod-Mass(:,2)).^2);
+            R(k) = (alg_param.weight*R_1+R_2)/(alg_param.weight*L+length(dataMod)-L); 
+        else
+            R(k) = sum((dataMod-Mass(:,2)).^2); 
         end
-        R_2 = sum((dataMod-Mass(:,2)).^2);
-        R(k) = (alg_param.weight*R_1+R_2)/(alg_param.weight*L+length(dataMod)-L); 
     else 
         R(k) = sum((dataMod-Mass(:,2)).^2); 
     end
@@ -813,32 +836,36 @@ function objVal=objF(Ndata, data, Chrom, LogScaling, template, FdsExe, weights, 
     SV_grad = sum((grad_Mod-mean(grad_Mod)).^2);   
     %R_grad = sum((grad_Mod-grad_exp).^2); 
     
-    if isfield(alg_param, 'index')    
-        R_1 = 0;
-        i_min = min(alg_param.index(:,1));
-        
-        L = 0;
-        if i_min > 1
-            R_2 = sum((grad_Mod(1:i_min-1)-grad_Exp(1:i_min-1,2)).^2);
-        else
-            R_2 = 0;
-        end
-        for ii = 1:length(alg_param.index(:,1))
-            i1 = alg_param.index(ii,1);
-            i2 = alg_param.index(ii,2);
-            L = L+i2-i1-1;
-            R_1 = R_1 + sum((grad_Mod(i1:i2)-grad_exp(i1:i2,2)).^2);
-            if ii < length(alg_param.index(:,1))
-                i3 = alg_param.index(ii+1,1)+1; 
+    if isfield(alg_param, 'index')   
+        if ~isequal(alg_param.index(1,1),0)
+            R_1 = 0;
+            i_min = min(alg_param.index(:,1));
+
+            L = 0;
+            if i_min > 1
+                R_2 = sum((grad_Mod(1:i_min-1)-grad_exp(1:i_min-1)).^2);
             else
-                i3 = length(grad_Mod);
+                R_2 = 0;
             end
-            R_2 = R_2 + sum((grad_Mod(i2+1:i3)-grad_exp(i2+1:i3,2)).^2);
+            for ii = 1:length(alg_param.index(:,1))
+                i1 = alg_param.index(ii,1);
+                i2 = alg_param.index(ii,2);
+                L = L+i2-i1-1;
+                R_1 = R_1 + sum((grad_Mod(i1:i2)-grad_exp(i1:i2)).^2);
+                if ii < length(alg_param.index(:,1))
+                    i3 = alg_param.index(ii+1,1)+1; 
+                else
+                    i3 = length(grad_Mod);
+                end
+                R_2 = R_2 + sum((grad_Mod(i2+1:i3)-grad_exp(i2+1:i3)).^2);
+            end
+            R_2 = sum((grad_Mod-grad_exp(:,2)).^2);
+            R_grad = (alg_param.weight*R_1+R_2)/(alg_param.weight*L+length(grad_Mod)-L); 
+        else
+           R_grad = sum((grad_Mod-grad_exp).^2);  
         end
-        R_2 = sum((grad_Mod-grad_exp(:,2)).^2);
-        R_grad = (alg_param.weight*R_1+R_2)/(alg_param.weight*L+length(grad_Mod)-L); 
     else 
-        R_grad = sum((grad_Mod-grad_exp(:,2)).^2); 
+        R_grad = sum((grad_Mod-grad_exp).^2); 
     end
     
     rdata_grad = weights(2)*(1-(SV_grad-R_grad)/SV_grad);
@@ -850,30 +877,34 @@ function objVal=objF(Ndata, data, Chrom, LogScaling, template, FdsExe, weights, 
     SV_2 = sum((dataMod(:,1)-mean(dataMod(:,1))).^2);  
     %R_2(k) = sum((dataMod(:,1)-Mass(:,2)).^2); 
     
-    if isfield(alg_param, 'index')    
-        R1 = 0;
-        i_min = min(alg_param.index(:,1));
-        
-        L = 0;
-        if i_min > 1
-            R2 = sum((dataMod(1:i_min-1,1)-Mass(1:i_min-1,2)).^2);
-        else
-            R2 = 0;
-        end
-        for ii = 1:length(alg_param.index(:,1))
-            i1 = alg_param.index(ii,1);
-            i2 = alg_param.index(ii,2);
-            L = L+i2-i1-1;
-            R1 = R1 + sum((dataMod(i1:i2,1)-Mass(i1:i2,2)).^2);
-            if ii < length(alg_param.index(:,1))
-                i3 = alg_param.index(ii+1,1)+1; 
+    if isfield(alg_param, 'index')
+        if ~isequal(alg_param.index(1,1),0)
+            R1 = 0;
+            i_min = min(alg_param.index(:,1));
+
+            L = 0;
+            if i_min > 1
+                R2 = sum((dataMod(1:i_min-1,1)-Mass(1:i_min-1,2)).^2);
             else
-                i3 = length(dataMod(:,1));
+                R2 = 0;
             end
-            R2 = R2 + sum((dataMod(i2+1:i3,1)-Mass(i2+1:i3,2)).^2);
+            for ii = 1:length(alg_param.index(:,1))
+                i1 = alg_param.index(ii,1);
+                i2 = alg_param.index(ii,2);
+                L = L+i2-i1-1;
+                R1 = R1 + sum((dataMod(i1:i2,1)-Mass(i1:i2,2)).^2);
+                if ii < length(alg_param.index(:,1))
+                    i3 = alg_param.index(ii+1,1)+1; 
+                else
+                    i3 = length(dataMod(:,1));
+                end
+                R2 = R2 + sum((dataMod(i2+1:i3,1)-Mass(i2+1:i3,2)).^2);
+            end
+            R2 = sum((dataMod(:,1)-Mass(:,2)).^2);
+            R_2(k) = (alg_param.weight*R1+R2)/(alg_param.weight*L+length(dataMod(:,1))-L); 
+        else
+            R_2(k) = sum((dataMod(:,1)-Mass(:,2)).^2); 
         end
-        R2 = sum((dataMod(:,1)-Mass(:,2)).^2);
-        R_2(k) = (alg_param.weight*R1+R2)/(alg_param.weight*L+length(dataMod(:,1))-L); 
     else 
         R_2(k) = sum((dataMod(:,1)-Mass(:,2)).^2); 
     end
@@ -885,30 +916,34 @@ function objVal=objF(Ndata, data, Chrom, LogScaling, template, FdsExe, weights, 
             SV_1 = sum((dataMod(:,2)-mean(dataMod(:,2))).^2); 
            % R_1(k) = sum((dataMod(:,2)-Mass(:,1)).^2);
             
-            if isfield(alg_param, 'index')    
-                R1 = 0;
-                i_min = min(alg_param.index(:,1));
+            if isfield(alg_param, 'index')  
+                if ~isequal(alg_param.index(1,1),0)
+                    R1 = 0;
+                    i_min = min(alg_param.index(:,1));
 
-                L = 0;
-                if i_min > 1
-                    R2 = sum((dataMod(1:i_min-1,2)-Mass(1:i_min-1,1)).^2);
-                else
-                    R2 = 0;
-                end
-                for ii = 1:length(alg_param.index(:,1))
-                    i1 = alg_param.index(ii,1);
-                    i2 = alg_param.index(ii,2);
-                    L = L+i2-i1-1;
-                    R1 = R1 + sum((dataMod(i1:i2,2)-Mass(i1:i2,1)).^2);
-                    if ii < length(alg_param.index(:,1))
-                        i3 = alg_param.index(ii+1,1)+1; 
+                    L = 0;
+                    if i_min > 1
+                        R2 = sum((dataMod(1:i_min-1,2)-Mass(1:i_min-1,1)).^2);
                     else
-                        i3 = length(dataMod(:,2));
+                        R2 = 0;
                     end
-                    R2 = R2 + sum((dataMod(i2+1:i3,2)-Mass(i2+1:i3,1)).^2);
+                    for ii = 1:length(alg_param.index(:,1))
+                        i1 = alg_param.index(ii,1);
+                        i2 = alg_param.index(ii,2);
+                        L = L+i2-i1-1;
+                        R1 = R1 + sum((dataMod(i1:i2,2)-Mass(i1:i2,1)).^2);
+                        if ii < length(alg_param.index(:,1))
+                            i3 = alg_param.index(ii+1,1)+1; 
+                        else
+                            i3 = length(dataMod(:,2));
+                        end
+                        R2 = R2 + sum((dataMod(i2+1:i3,2)-Mass(i2+1:i3,1)).^2);
+                    end
+                    R2 = sum((dataMod(:,2)-Mass(:,1)).^2);
+                    R_1(k) = (alg_param.weight*R1+R2)/(alg_param.weight*L+length(dataMod(:,2))-L); 
+                else
+                    R_1(k) = sum((dataMod(:,2)-Mass(:,1)).^2); 
                 end
-                R2 = sum((dataMod(:,2)-Mass(:,1)).^2);
-                R_1(k) = (alg_param.weight*R1+R2)/(alg_param.weight*L+length(dataMod(:,2))-L); 
             else 
                 R_1(k) = sum((dataMod(:,2)-Mass(:,1)).^2); 
             end

@@ -121,6 +121,8 @@ if (~isequal(file_name,0))
    end
    lines = lines + 1;
    handles.var.lines = lines;
+   handles.EXPDATA(lines).gas = 'Air';
+   handles.EXPDATA(lines).rate = 10;
    switch DType
       case('TGA')
          handles.EXPDATA(lines).temperature = values(:,1);

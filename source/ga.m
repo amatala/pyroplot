@@ -1521,19 +1521,38 @@ alg_param.MIGR = handles.GA.MIGR;
 alg_param.MIGGEN = handles.GA.MIGGEN;
 
 guidata(hObject, handles);
-[handles.GA.bestChrom, handles.GA.oV, parameters] = fdsga(handles.GA.estimates, data, handles.template, handles.FdsExe, handles.GA.weights, handles.GA.Aindex, handles.GA.limits, handles.GA.LogScaling, handles.GA.Par_struct, handles.GA.moisture,alg_param);
-fid = fopen('bestChrom.txt', 'w');
-fprintf(fid, '%s\n', 'Solution of GA');
+
+% Best Chrom - log
+fid = fopen('bestChrom.csv', 'w');
+fprintf(fid, '%s\n', 'Best Chrom of the generation');
 fprintf(fid, '%s\n', '');
+str = 'Generation, ';
 for i = 1:handles.GA.variables
-    fprintf(fid, '%s\t', handles.GA.var(i).id);
-    fprintf(fid, '%f\n', handles.GA.bestChrom(i));
+    str = [str, handles.GA.var(i).id, ','];
 end
-for i = 1:length(parameters)
-    fprintf(fid, '%s\t', ['PAR', mat2str(i)]);
-    fprintf(fid, '%f\n', parameters(i));
+if ~isempty(handles.GA.Par_struct.ramp_value.index)
+   for i = 1:length(handles.GA.Par_struct.ramp_value.index)
+       str = [str, 'Ramp value ', mat2str(i),','];
+   end
 end
+str = [str, 'Fitness value'];
+fprintf(fid, '%s\n', str);
+
 fclose(fid);
-open('bestChrom.txt');
+
+[handles.GA.bestChrom, handles.GA.oV, parameters] = fdsga(handles.GA.estimates, data, handles.template, handles.FdsExe, handles.GA.weights, handles.GA.Aindex, handles.GA.limits, handles.GA.LogScaling, handles.GA.Par_struct, handles.GA.moisture,alg_param);
+ fid = fopen('bestChrom.csv', 'a');
+% fprintf(fid, '%s\n', 'Parameters');
+% fprintf(fid, '%s\n', '');
+% for i = 1:handles.GA.variables
+%     fprintf(fid, '%s\t', handles.GA.var(i).id);
+%     fprintf(fid, '%f\n', handles.GA.bestChrom(i));
+% end
+% for i = 1:length(parameters)
+%     fprintf(fid, '%s\t', ['PAR', mat2str(i)]);
+%     fprintf(fid, '%f\n', parameters(i));
+% end
+% fclose(fid);
+open('bestChrom.csv');
 guidata(handles.GA.hTGAga,handles);
 end

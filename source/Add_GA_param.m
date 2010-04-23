@@ -201,39 +201,50 @@ for i = 1:length(handles.GA.data)
 end
 if strcmp(type, 'TGA')
    X = handles.GA.data(index).temperature;
-   Y = handles.GA.data(index).TGA;
+   Y2 = handles.GA.data(index).TGA;
+   Y1 = -gradient(handles.GA.data(index).TGA, handles.GA.data(index).time);
 else
    X = handles.GA.data(index).time;
-   Y = handles.GA.data(index).MLR;
+   Y1 = handles.GA.data(index).MLR;
+   if (handles.Options.NFilter(1)>1)
+    Y1=filtNs(Y1,handles.Options.NFilter(1));    
+   end
 end
 hNext = uicontrol(handles.GA.hexp_weight, 'Style', 'pushbutton', ...
    'string', 'More', ...
    'Units', 'normalized', ...
    'Position', [0.93 0.6 0.044 0.05], ...
-   'Callback', {@more_weight_cb,X,Y});
+   'Callback', {@more_weight_cb,X,Y1});
 hClear = uicontrol(handles.GA.hexp_weight, 'Style', 'pushbutton', ...
    'string', 'Clear', ...
    'Units', 'normalized', ...
    'Position', [0.93 0.7 0.044 0.05], ...
-   'Callback', {@clear_weight_cb,X,Y});
+   'Callback', {@clear_weight_cb,X,Y1});
 
 set(handles.GA.hexp_weight, 'Visible', 'on');
-h = plot(X,Y);
+if strcmp(type, 'TGA')
+    [ax, h1, h2] =plotyy(X, Y2, X, Y1);
+    ylim(ax(2), [0, 1.1*max(Y1)]);
+else
+    h1 = plot(X,Y1);
+end
 hold on
 if strcmp(type, 'TGA')
    xlabel('Temperature (C)');
-   ylabel('Mass fraction (kg/kg)');
+   ylabel(ax(1), 'Mass fraction (kg/kg)');
+   ylabel(ax(2), 'Mass gradient (1/s)');
+   set(h2, 'LineWidth', 2);
 else
    xlabel('Time (s)');
    ylabel('Mass loss rate (kg/sm^2)');
 end
-set(h, 'LineWidth', 2);
+set(h1, 'LineWidth', 2);
 handles.GA.weight_n = 1;
 %handles.GA.enough_weights = false;
 
 guidata(handles.GA.hexp_weight, handles);
 
-handles = choose_areas(handles, X,Y);
+handles = choose_areas(handles, X,Y1);
 guidata(handles.GA.hexp_weight, handles);
 
 uiwait(handles.GA.hexp_weight);

@@ -90,7 +90,8 @@ if (~isequal(file_name,0))
    data2 = readdata(devc_file, 2);
    values(:,1) = data1(:,1);
    values(:,2) = data1(:,2)./handles.A; %HRR
-   values(:,3) = interp1(data2(:,1),data2(:,6),data1(:,1)); %MLR
+   values(:,3) = interp1(data2(:,1),data2(:,5),data1(:,1)); %MLR (surface density)
+   values(:,3) = -gradient(values(:,3),data1(:,1));
    warning off all
    values(:,4) = values(:,2)./values(:,3).*10^(-3); %EHC=HRR/MLR (MJ/kg)
    warning on

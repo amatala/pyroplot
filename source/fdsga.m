@@ -859,7 +859,7 @@ function objVal=objF(Ndata, data, Chrom, LogScaling, template, FdsExe, weights, 
                 end
                 R_2 = R_2 + sum((grad_Mod(i2+1:i3)-grad_exp(i2+1:i3)).^2);
             end
-            R_2 = sum((grad_Mod-grad_exp(:,2)).^2);
+            R_2 = sum((grad_Mod-grad_exp(:)).^2);
             R_grad = (alg_param.weight*R_1+R_2)/(alg_param.weight*L+length(grad_Mod)-L); 
         else
            R_grad = sum((grad_Mod-grad_exp).^2);  

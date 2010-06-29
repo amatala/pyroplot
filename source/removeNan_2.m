@@ -1,4 +1,4 @@
-function ff = removeNan_2(F)
+function [ff, I] = removeNan_2(F)
 
 [r,s] = size(F);
 ff = [];
@@ -17,8 +17,11 @@ else
         if isnan(t(i))
         elseif isnan(m(i))
             f(k) = [t(i), m(i-1)];
+            I(k) = i;
+            k = k+1;
         else
          f(k,:) = [t(i), m(i)];
+         I(k) = i;
          k = k+1;
         end
             
@@ -32,6 +35,7 @@ elseif s == 1
     for i = 1:r
         if ~isnan(F(i))      
            f(k) = F(i);
+           I(k) = i;
            k = k+1;
         end
     end

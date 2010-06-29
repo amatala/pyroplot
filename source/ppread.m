@@ -20,6 +20,8 @@ rdstr = ['Read TGA from FDS output'];
 [file_name, dir_path]=uigetfile('*_prof_01.csv', rdstr, handles.var.starting_path);
 elseif strcmp(DType, 'Cone')
     [file_name, dir_path]=uigetfile('*_red.csv', 'Read Cone', handles.var.starting_path);
+elseif  strcmp(DType, 'Cone2')
+    [file_name, dir_path]=uigetfile('*.csv', 'Read Cone', handles.var.starting_path);
 elseif strcmp(DType, 'ConeFDS')
     [file_name, dir_path]=uigetfile('*_hrr.csv', 'Read Cone from output', handles.var.starting_path);
 else
@@ -83,6 +85,12 @@ if (~isequal(file_name,0))
    values(:,2) = cell2mat(data(:,4)); %HRR (kw/m^2)
    values(:,3) = cell2mat(data(:,8)).*10^(-3); %MLR (in file unit is g/sm^2, now kg/sm^2)
    values(:,4) = cell2mat(data(:,5)); %EHC unit MJ/kg
+   elseif strcmp(DType, 'Cone2')
+       data = readdata(file, 0);
+       values(:,1) = data(:,1)-min(data(:,1)); % if time of test start is not 0;
+       values(:,2) = data(:,2);
+       values(:,3) = data(:,3);
+       values(:,4) = data(:,4);
    elseif strcmp(DType, 'ConeFDS')
    data1 = readdata(file, 2);
    devc_file = file(1:(length(file)-7));
@@ -124,6 +132,15 @@ if (~isequal(file_name,0))
    handles.var.lines = lines;
    handles.EXPDATA(lines).gas = 'Air';
    handles.EXPDATA(lines).rate = 10;
+   
+   %plot settings
+   % first number tells the line style (solid, dash, dot, dashdot)
+   % second number tells the line width
+   
+   load plot_settings.mat
+   handles.EXPDATA(lines).p_set_l = [settings.Style, settings.Width];
+   handles.EXPDATA(lines).p_set_r = [settings.Style, settings.Width];
+   
    switch DType
       case('TGA')
          handles.EXPDATA(lines).temperature = values(:,1);
@@ -202,7 +219,7 @@ if (~isequal(file_name,0))
          handles.EXPDATA(lines).check = [0 0 0 0];
          handles.EXPDATA(lines).pair = lines-1;
          handles.Options.rb(lines,1:2)=0;
-      case('Cone') 
+      case('Cone')
          [m,n] = size(values);
          time = values(:,1);
          handles.EXPDATA(lines).time=removeNan_2(time);
@@ -229,6 +246,36 @@ if (~isequal(file_name,0))
          handles.EXPDATA(lines).check = [0 0 0 0];
          handles.EXPDATA(lines).pair = 0;
          handles.Options.rb(lines,1:2)=0;
+       case('Cone2')
+           [m,n] = size(values);
+         time = values(:,1);
+         handles.EXPDATA(lines).time=removeNan_2(time);
+         HRR = values(:,2);
+         [handles.EXPDATA(lines).ConeHRR, I]= removeNan_2([time,HRR]); %sample 10 cm x 10 cm
+         if (n>2)
+             MLR = values(:,3);
+            %handles.EXPDATA(lines).ConeMLR=removeNan_2([time,MLR]);
+            handles.EXPDATA(lines).ConeMLR=MLR(I);
+         end
+         if (n>3)
+             EHC = values(:,4);
+             %handles.EXPDATA(lines).ConeEHC=removeNan_2([time,EHC]);
+             handles.EXPDATA(lines).ConeEHC=EHC(I);
+         end
+         handles.EXPDATA(lines).temperature=0;
+         handles.EXPDATA(lines).TGA=0;
+         handles.EXPDATA(lines).EXO = 0;
+         handles.EXPDATA(lines).gradient = 0;
+         handles.EXPDATA(lines).opgradient = 0;
+         handles.EXPDATA(lines).DSC=0;
+         handles.EXPDATA(lines).type='Cone';
+         handles.EXPDATA(lines).rate='-';
+         handles.EXPDATA(lines).name = 'Cone ';
+         handles.EXPDATA(lines).path = file;
+         handles.EXPDATA(lines).check = [0 0 0 0];
+         handles.EXPDATA(lines).pair = 0;
+         handles.Options.rb(lines,1:2)=0;
+         DType = 'Cone';
          case('ConeFDS') 
          [m,n] = size(values);
          handles.EXPDATA(lines).time=values(:,1);

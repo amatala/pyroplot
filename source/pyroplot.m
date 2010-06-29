@@ -18,6 +18,8 @@ function pyroplot
 % handles.EXPDATA().path              Full file name of data
 % handles.EXPDATA().check             Plot options
 % handles.EXPDATA().pair              Index of data pair for STA data
+% handles.EXPDATA().p_set_l           Settings for plotting (left)
+% handles.EXPDATA().p_set_r           Settings for plotting (right)
 
 %  Initialize and hide the GUI as it is being constructed.
 hPyroPlot = figure(...
@@ -112,9 +114,14 @@ handles.hMenu.hReadDSCitem  =   uimenu(...
 % add 'Read Cone'
 handles.hMenu.hReadConeitem  =   uimenu(...      
                         'Parent',handles.hMenu.hFileMenu,...
-                        'Label','Read &Cone',...
+                        'Label','Read &Cone type 1',...
                         'HandleVisibility','callback', ...
                         'Callback', {@readDATACallback,'Cone'});
+handles.hMenu.hReadConeitem2  =   uimenu(...
+                        'Parent',handles.hMenu.hFileMenu,...
+                        'Label','Read Cone type &2',...
+                        'HandleVisibility','callback', ...
+                        'Callback', {@readDATACallback,'Cone2'});
 handles.hMenu.hReadConeitem  =   uimenu(...      
                         'Parent',handles.hMenu.hFileMenu,...
                         'Label','Read Cone (&FDS)',...
@@ -134,20 +141,33 @@ handles.hMenu.hSettingsMenu      =   uimenu(...
                         'HandleVisibility','callback', ...
                         'Label','&Settings');
   
-% add Filter menu items
+% add Settings menu items
 handles.hMenu.hFilter  =   uimenu(...       
                         'Parent',handles.hMenu.hSettingsMenu,...
                         'Label','&Filter',...
                         'HandleVisibility','callback', ...
                         'Callback', @filter_Callback);
 
+handles.hMenu.hPlot_set  =   uimenu(...       
+                        'Parent',handles.hMenu.hSettingsMenu,...
+                        'Label','&Plot Settings',...
+                        'HandleVisibility','callback', ...
+                        'Callback', @plot_set_Callback);
+                    
+handles.hMenu.hPlot_set  =   uimenu(...       
+                        'Parent',handles.hMenu.hSettingsMenu,...
+                        'Label','&Restore default plot settings',...
+                        'HandleVisibility','callback', ...
+                        'Callback', @restore_set_Callback);
+                    
+                    
 % add Tools menu
 handles.hMenu.hToolsMenu      =   uimenu(...       
                         'Parent',handles.hPyroPlot,...
                         'HandleVisibility','callback', ...
                         'Label','&Tools');
   
-% add Filter menu items
+% add Tools menu items
 handles.hMenu.hSubPlot  =   uimenu(...       
                         'Parent',handles.hMenu.hToolsMenu,...
                         'Label','&SubPlot',...
@@ -369,6 +389,13 @@ handles.hStatic.hdelok = uicontrol(handles.hStatic.hdelpanel,...
    'Position',[0.4 0.11 0.2 0.24],...
    'Callback',{@delok_Callback});
 
+%Plot -pushbutton (data is plotted only after this is clicked)
+% handles.hStatic.hdelok = uicontrol(handles.hPyroPlot,...
+%    'Style','pushbutton','String','PLOT',...
+%    'Units', 'normalized', ...
+%    'Position',[0.8 0.1 0.05 0.05],...
+%    'Callback',{@plot_data_Callback});
+
 end %AddStatic
 
 %-------------------------------------------------------
@@ -496,6 +523,78 @@ end
 guidata(hObject,handles);
 end
 
+function plot_set_Callback(hObject, eventdata)
+handles = guidata(hObject);
+
+% user set defaults
+ p = {'\fontsize{12} Position',...
+      '\fontsize{12} FontSize',...
+      '\fontsize{12} Line width',...
+      '\fontsize{12} Line style (1 - solid, 2 - dash, 3 - dot, 4 - dashdot'};
+ name = 'Plot settings';
+  
+  numlines = 1;
+  load plot_settings.mat
+  
+  defaultanswer{1} = num2str(settings.Position);
+  defaultanswer{2} = num2str(settings.FontSize);
+  defaultanswer{3} = num2str(settings.Width);
+  defaultanswer{4} = num2str(settings.Style);
+  
+  options.Interpreter='tex';
+  answer=inputdlg(p,name,numlines,defaultanswer,options);
+   
+  if isempty(answer)
+     return;
+  end
+   
+  str = str2mat(answer(1));
+  k = 0;
+  num = '';
+  
+  for i = 1:length(str)
+    if ~isnan(str2double(str(i))) || strcmp(str(i), '.')
+        num = [num, str(i)];
+    else
+        if ~isempty(num)
+            k = k+1;
+            settings.Position(k) = str2double(num);
+            num = '';
+        end
+    end
+  end
+  if ~isempty(num)
+      k = k+1;
+      settings.Position(k) = str2double(num);
+      clear num
+  end
+  settings.FontSize = round(str2double(answer{2}));
+  settings.Width = round(str2double(answer{3}));
+  settings.Style = round(str2double(answer{4}));
+  
+  save plot_settings.mat settings
+  
+% restore defaults
+
+
+guidata(hObject,handles);
+end
+
+
+function restore_set_Callback(hObject, eventdata)
+handles = guidata(hObject);
+
+settings.Position = [0.1, 0.1, 0.65, 0.6];
+settings.FontSize = 14;
+settings.Width = 2;
+settings.Style = 1;
+
+save plot_settings.mat settings
+
+msgbox('Default settings have been restored');
+
+guidata(hObject,handles);
+end
 %------------------------------------------------
 %Tools callbacks
 
@@ -851,6 +950,8 @@ handles.EXPDATA(1).path = '';
 handles.EXPDATA(1).check = [0 0 0 0]; %check boxes not cheked
 handles.EXPDATA(1).pair = 0; %index to TGA-DSC pairs, if not pair, this is 0
 handles.EXPDATA(1).EXO = 0;
+handles.EXPDATA(1).p_set_l = [1, 2]; %solid line, width 2
+handles.EXPDATA(1).p_set_l = [2, 2]; %dash line, width 2
 handles.A = 100E-4; %surface area of cone sample
 handles.hCbvector(1,:)=[0 0 0 0]; % vector for checkbox callbacks
 handles.hRBvector(1,:)=[1 1 1 1 1 1]; % vector for radiobutton callbacks
@@ -1102,6 +1203,14 @@ end
 % updatePlot
 % function plots chosen series again everytime something is called
 %
+
+function plot_data_Callback(hObject, eventdata)
+handles = guidata(hObject);
+%handles = updata_plot(handles);
+guidata(hObject, handles);
+
+end
+
 function handles = updatePlot(handles)
 %first collect all data to strings
 
@@ -1251,22 +1360,29 @@ if (length(dataset1l) ~=1 || length(dataset1r)~=1)
    end
    if (isfield(handles,'hFigure'))
       if ishandle(handles.hFigure(1))         
-         %   for i = 1:length(handles.fig_index_11(:,1))
-         %       index = handles.fig_index_11(i,2);         
-         %       line_handle = handles.fig_index_11(i,1);  
-         %       handles.EXPDATA(index).color_11 = get(line_handle,'Color');
-         %       handles.EXPDATA(index).style_11 = get(line_handle,'LineStyle'); 
-         %       handles.EXPDATA(index).width_11 = get(line_handle,'LineWidth');            
-         %   end
+            for i = 1:length(handles.fig_index_11(:,1))
+                index = handles.fig_index_11(i,2);         
+                line_handle = handles.fig_index_11(i,1);  
+                
+                handles.EXPDATA(index).color_l = get(line_handle, 'Color');
+                style = 1;
+                if strcmp(get(line_handle,'LineStyle'), '--')
+                    style = 2;
+                elseif strcmp(get(line_handle,'LineStyle'), ':')
+                    style = 3;
+                elseif strcmp(get(line_handle,'LineStyle'), '-.')
+                    style = 4;
+                end
+                handles.EXPDATA(index).p_set_l = [style, get(line_handle,'LineWidth')];
+            end
+            handles.fig1_fontSize = get(handles.hAxes.ax11, 'FontSize');
+            handles.fig1_position = get(handles.hFigure(1), 'Position');
          close(handles.hFigure(1));
-      %else
-          %if isfield(handles.EXPDATA, 'color_11')
-          %handles.EXPDATA = rmfield(handles.EXPDATA, 'color_11');
-          %handles.EXPDATA = rmfield(handles.EXPDATA, 'style_11');
-          %handles.EXPDATA = rmfield(handles.EXPDATA, 'width_11');
-          %end
-          
-          
+      else
+          load plot_settings.mat
+          handles.fig1_fontSize = settings.FontSize;
+          handles.fig1_position = settings.Position;
+          clear settings
       end
    end
    handles.hFigure(1) = figure(...
@@ -1275,16 +1391,10 @@ if (length(dataset1l) ~=1 || length(dataset1r)~=1)
       'HandleVisibility','callback', ...
       'NumberTitle', 'off', ...
       'Units', 'normalized', ...
-      'Position',[0.1,0.1,0.65,0.6],...
+      'Position',handles.fig1_position,...
       'Color', get(0,...
       'defaultuicontrolbackgroundcolor'));
-  % 
-  %handles.hSavepng1 = uicontrol(handles.hFigure(1), ...
-  %    'Style', 'pushbutton', ...
-  %    'String', 'Smaller', ...
-  %    'Units', 'Normalized', ...
-  %    'Position', [0.85 0.2 0.1 0.05], ...
-  %    'Callback', @savepng1_cb);
+  
    set(0,'CurrentFigure',handles.hFigure(1));
    set(handles.hFigure(1), 'Visible', 'on');
    
@@ -1300,17 +1410,31 @@ if (length(dataset1l) ~=1 || length(dataset1r)~=1)
    % plot figure with eval
    if(length(dataset1l) ~=1)
       h11=eval(s1);
+      handles.fig_index_11 = [h11, ph_11']; 
       ylabel(handles.hAxes.ax11, handles.var.yLabel1Left);
-     % for i=1:length(handles.fig_index_11(:,1))
-     %        index = handles.fig_index_11(i,2);
-     %        line_handle = handles.fig_index_11(i,1);
-     %    if isfield(handles.EXPDATA(index), 'color_11')
-     %        set(line_handle, 'Color', handles.EXPDATA(index).color_11);
-     %        set(line_handle, 'LineStyle', handles.EXPDATA(index).style_11);
-     %        set(line_handle, 'LineWidth', handles.EXPDATA(index).width_11);
-     %    end
-     % end
+     for i=1:length(handles.fig_index_11(:,1))
+            index = handles.fig_index_11(i,2);
+            line_handle = handles.fig_index_11(i,1);
+        if isfield(handles.EXPDATA(index), 'color_l') % if fig 1 exists
+            set(line_handle, 'Color', handles.EXPDATA(index).color_l); 
+        else
+            %handles.EXPDATA(index).color_l = get(line_handle, 'Color');
+        end
+            set(line_handle, 'LineWidth', handles.EXPDATA(index).p_set_l(2));
+            
+            if isequal(handles.EXPDATA(index).p_set_l(1),1)
+                style = '-';
+            elseif isequal(handles.EXPDATA(index).p_set_l(1),2)
+                style = '--';
+            elseif isequal(handles.EXPDATA(index).p_set_l(1),3)
+                style = ':';
+            else
+               style = '-.';
+            end
+            set(line_handle, 'LineStyle', style);
+     end
    end
+   set(handles.hAxes.ax11, 'FontSize', handles.fig1_fontSize)
    set(handles.hAxes.ax11, 'XLim', limits1);
    hold on;
    handles.hAxes.ax12=axes('Position', get(handles.hAxes.ax11, 'Position'), ...

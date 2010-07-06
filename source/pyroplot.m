@@ -1384,7 +1384,7 @@ if (length(dataset1l) ~=1 || length(dataset1r)~=1)
                 handles.EXPDATA(index).p_set_l = [style, get(line_handle,'LineWidth')];
             end
             handles.fig1_fontSize_left = get(handles.hAxes.ax11, 'FontSize');
-          
+          handles = rmfield(handles,'fig_index_11');
           end
           
           if isfield(handles,'fig_index_12')
@@ -1404,6 +1404,7 @@ if (length(dataset1l) ~=1 || length(dataset1r)~=1)
                 handles.EXPDATA(index).p_set_r = [style, get(line_handle,'LineWidth')];
             end
             handles.fig1_fontSize_right = get(handles.hAxes.ax12, 'FontSize');
+            handles = rmfield(handles,'fig_index_12');
           end
           
          handles.fig1_position = get(handles.hFigure(1), 'Position');
@@ -1447,7 +1448,9 @@ if (length(dataset1l) ~=1 || length(dataset1r)~=1)
             index = handles.fig_index_11(i,2);
             line_handle = handles.fig_index_11(i,1);
         if isfield(handles.EXPDATA(index), 'color_l') % if fig 1 exists
-            set(line_handle, 'Color', handles.EXPDATA(index).color_l); 
+            if ~isempty(handles.EXPDATA(index).color_l)
+                set(line_handle, 'Color', handles.EXPDATA(index).color_l); 
+            end
         else
             %handles.EXPDATA(index).color_l = get(line_handle, 'Color');
         end
@@ -1483,7 +1486,9 @@ if (length(dataset1l) ~=1 || length(dataset1r)~=1)
             index = handles.fig_index_12(i,2);
             line_handle = handles.fig_index_12(i,1);
         if isfield(handles.EXPDATA(index), 'color_r') % if fig 1 exists
-            set(line_handle, 'Color', handles.EXPDATA(index).color_r); 
+            if ~isempty(handles.EXPDATA(index).color_r)
+                set(line_handle, 'Color', handles.EXPDATA(index).color_r); 
+            end
         else
             %handles.EXPDATA(index).color_l = get(line_handle, 'Color');
         end
@@ -1628,7 +1633,9 @@ if ((length(dataset2l) ~=1) || (length(dataset2r)~=1))
             index = handles.fig_index_21(i,2);
             line_handle = handles.fig_index_21(i,1);
         if isfield(handles.EXPDATA(index), 'color_l') % if fig 1 exists
-            set(line_handle, 'Color', handles.EXPDATA(index).color_l); 
+            if ~isempty(handles.EXPDATA(index).color_l)
+                set(line_handle, 'Color', handles.EXPDATA(index).color_l); 
+            end
         else
             %handles.EXPDATA(index).color_l = get(line_handle, 'Color');
         end
@@ -1664,7 +1671,9 @@ if ((length(dataset2l) ~=1) || (length(dataset2r)~=1))
             index = handles.fig_index_22(i,2);
             line_handle = handles.fig_index_22(i,1);
         if isfield(handles.EXPDATA(index), 'color_r') % if fig 1 exists
-            set(line_handle, 'Color', handles.EXPDATA(index).color_r); 
+            if ~isempty(handles.EXPDATA(index).color_r)
+                set(line_handle, 'Color', handles.EXPDATA(index).color_r); 
+            end 
         else
             %handles.EXPDATA(index).color_l = get(line_handle, 'Color');
         end

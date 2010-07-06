@@ -138,8 +138,8 @@ if (~isequal(file_name,0))
    % second number tells the line width
    
    load plot_settings.mat
-   handles.EXPDATA(lines).p_set_l = [settings.Style, settings.Width];
-   handles.EXPDATA(lines).p_set_r = [settings.Style, settings.Width];
+   handles.EXPDATA(lines).p_set_l = [settings.left.Style, settings.left.Width];
+   handles.EXPDATA(lines).p_set_r = [settings.right.Style, settings.right.Width];
    
    switch DType
       case('TGA')
@@ -205,6 +205,9 @@ if (~isequal(file_name,0))
          lines = lines + 1;
          handles.var.lines = lines;
          %
+         handles.EXPDATA(lines).p_set_l = [settings.left.Style, settings.left.Width];
+         handles.EXPDATA(lines).p_set_r = [settings.right.Style, settings.right.Width];
+    
          handles.EXPDATA(lines).temperature = values2(:,1);
          handles.EXPDATA(lines).DSC = values2(:,2);
          handles.EXPDATA(lines).EXO = EXO;

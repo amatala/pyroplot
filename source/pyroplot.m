@@ -527,19 +527,25 @@ function plot_set_Callback(hObject, eventdata)
 handles = guidata(hObject);
 
 % user set defaults
- p = {'\fontsize{12} Position',...
-      '\fontsize{12} FontSize',...
-      '\fontsize{12} Line width',...
-      '\fontsize{12} Line style (1 - solid, 2 - dash, 3 - dot, 4 - dashdot'};
+ p = {'\fontsize{10} Position',...
+      '\fontsize{10} FontSize - left',...
+      '\fontsize{10} Line width - left',...
+      '\fontsize{10} Line style - left (1 - solid, 2 - dash, 3 - dot, 4 - dashdot', ...
+      '\fontsize{10} FontSize - right',...
+      '\fontsize{10} Line width - right',...
+      '\fontsize{10} Line style - right (1 - solid, 2 - dash, 3 - dot, 4 - dashdot'};
  name = 'Plot settings';
   
   numlines = 1;
   load plot_settings.mat
   
   defaultanswer{1} = num2str(settings.Position);
-  defaultanswer{2} = num2str(settings.FontSize);
-  defaultanswer{3} = num2str(settings.Width);
-  defaultanswer{4} = num2str(settings.Style);
+  defaultanswer{2} = num2str(settings.left.FontSize);
+  defaultanswer{3} = num2str(settings.left.Width);
+  defaultanswer{4} = num2str(settings.left.Style);
+  defaultanswer{5} = num2str(settings.right.FontSize);
+  defaultanswer{6} = num2str(settings.right.Width);
+  defaultanswer{7} = num2str(settings.right.Style);
   
   options.Interpreter='tex';
   answer=inputdlg(p,name,numlines,defaultanswer,options);
@@ -551,7 +557,7 @@ handles = guidata(hObject);
   str = str2mat(answer(1));
   k = 0;
   num = '';
-  
+   
   for i = 1:length(str)
     if ~isnan(str2double(str(i))) || strcmp(str(i), '.')
         num = [num, str(i)];
@@ -568,27 +574,28 @@ handles = guidata(hObject);
       settings.Position(k) = str2double(num);
       clear num
   end
-  settings.FontSize = round(str2double(answer{2}));
-  settings.Width = round(str2double(answer{3}));
-  settings.Style = round(str2double(answer{4}));
-  
+  settings.left.FontSize = round(str2double(answer{2}));
+  settings.left.Width = round(str2double(answer{3}));
+  settings.left.Style = round(str2double(answer{4}));
+  settings.right.FontSize = round(str2double(answer{5}));
+  settings.right.Width = round(str2double(answer{6}));
+  settings.right.Style = round(str2double(answer{7}));
   save plot_settings.mat settings
   
-% restore defaults
-
-
 guidata(hObject,handles);
 end
 
-
+% restore defaults
 function restore_set_Callback(hObject, eventdata)
 handles = guidata(hObject);
 
 settings.Position = [0.1, 0.1, 0.65, 0.6];
-settings.FontSize = 14;
-settings.Width = 2;
-settings.Style = 1;
-
+settings.left.FontSize = 14;
+settings.left.Width = 2;
+settings.left.Style = 1;
+settings.right.FontSize = 14;
+settings.right.Width = 2;
+settings.right.Style = 2;
 save plot_settings.mat settings
 
 msgbox('Default settings have been restored');
@@ -1359,7 +1366,8 @@ if (length(dataset1l) ~=1 || length(dataset1r)~=1)
       legend1 = [legend1l ',' legend1r];
    end
    if (isfield(handles,'hFigure'))
-      if ishandle(handles.hFigure(1))         
+      if ishandle(handles.hFigure(1))   
+          if isfield(handles,'fig_index_11')
             for i = 1:length(handles.fig_index_11(:,1))
                 index = handles.fig_index_11(i,2);         
                 line_handle = handles.fig_index_11(i,1);  
@@ -1375,12 +1383,35 @@ if (length(dataset1l) ~=1 || length(dataset1r)~=1)
                 end
                 handles.EXPDATA(index).p_set_l = [style, get(line_handle,'LineWidth')];
             end
-            handles.fig1_fontSize = get(handles.hAxes.ax11, 'FontSize');
-            handles.fig1_position = get(handles.hFigure(1), 'Position');
+            handles.fig1_fontSize_left = get(handles.hAxes.ax11, 'FontSize');
+          
+          end
+          
+          if isfield(handles,'fig_index_12')
+            for i = 1:length(handles.fig_index_12(:,1))
+                index = handles.fig_index_12(i,2);         
+                line_handle = handles.fig_index_12(i,1);  
+                
+                handles.EXPDATA(index).color_r = get(line_handle, 'Color');
+                style = 1;
+                if strcmp(get(line_handle,'LineStyle'), '--')
+                    style = 2;
+                elseif strcmp(get(line_handle,'LineStyle'), ':')
+                    style = 3;
+                elseif strcmp(get(line_handle,'LineStyle'), '-.')
+                    style = 4;
+                end
+                handles.EXPDATA(index).p_set_r = [style, get(line_handle,'LineWidth')];
+            end
+            handles.fig1_fontSize_right = get(handles.hAxes.ax12, 'FontSize');
+          end
+          
+         handles.fig1_position = get(handles.hFigure(1), 'Position');
          close(handles.hFigure(1));
       else
           load plot_settings.mat
-          handles.fig1_fontSize = settings.FontSize;
+          handles.fig1_fontSize_left = settings.left.FontSize;
+          handles.fig1_fontSize_right = settings.right.FontSize;
           handles.fig1_position = settings.Position;
           clear settings
       end
@@ -1434,7 +1465,7 @@ if (length(dataset1l) ~=1 || length(dataset1r)~=1)
             set(line_handle, 'LineStyle', style);
      end
    end
-   set(handles.hAxes.ax11, 'FontSize', handles.fig1_fontSize)
+   set(handles.hAxes.ax11, 'FontSize', handles.fig1_fontSize_left)
    set(handles.hAxes.ax11, 'XLim', limits1);
    hold on;
    handles.hAxes.ax12=axes('Position', get(handles.hAxes.ax11, 'Position'), ...
@@ -1445,9 +1476,34 @@ if (length(dataset1l) ~=1 || length(dataset1r)~=1)
    s2 = ['plot('  dataset1r ', ''Parent'',handles.hAxes.ax12)'];
    hold on;
    if(length(dataset1r) ~=1)
-      colormap(hsv);
       h12=eval(s2);
-      set(h12, 'LineStyle', '--');
+      handles.fig_index_12 = [h12, ph_12']; 
+      ylabel(handles.hAxes.ax12, handles.var.yLabel1Right);
+     for i=1:length(handles.fig_index_12(:,1))
+            index = handles.fig_index_12(i,2);
+            line_handle = handles.fig_index_12(i,1);
+        if isfield(handles.EXPDATA(index), 'color_r') % if fig 1 exists
+            set(line_handle, 'Color', handles.EXPDATA(index).color_r); 
+        else
+            %handles.EXPDATA(index).color_l = get(line_handle, 'Color');
+        end
+            set(line_handle, 'LineWidth', handles.EXPDATA(index).p_set_r(2));
+            
+            if isequal(handles.EXPDATA(index).p_set_r(1),1)
+                style = '-';
+            elseif isequal(handles.EXPDATA(index).p_set_r(1),2)
+                style = '--';
+            elseif isequal(handles.EXPDATA(index).p_set_r(1),3)
+                style = ':';
+            else
+               style = '-.';
+            end
+            set(line_handle, 'LineStyle', style);
+     end
+   
+   set(handles.hAxes.ax12, 'FontSize', handles.fig1_fontSize_right)
+      colormap(hsv);
+      
       ylabel(handles.hAxes.ax12, handles.var.yLabel1Right);
       set(handles.hAxes.ax12, 'Position', get(handles.hAxes.ax11, 'Position'));
       set(handles.hAxes.ax12, 'Visible', 'on');
@@ -1462,8 +1518,19 @@ if (length(dataset1l) ~=1 || length(dataset1r)~=1)
          xlabel(handles.hAxes.ax11,'Time (s)');
    end
    guidata(handles.hFigure(1), handles);
+   
+   %save handle information
+plot_handles.fig1.figure = handles.hFigure(1);
+plot_handles.fig1.left.ax = handles.hAxes.ax11;
+plot_handles.fig1.right.ax = handles.hAxes.ax11;
+plot_handles.fig1.left.lines = h11;        
+plot_handles.fig1.right.lines = h12;   
+
+save plot_handles.mat plot_handles
+clear plot_handles
+
 end
-        
+
 %figure2
 if ((length(dataset2l) ~=1) || (length(dataset2r)~=1))
    if length(legend2r) == 1
@@ -1474,10 +1541,57 @@ if ((length(dataset2l) ~=1) || (length(dataset2r)~=1))
       legend2 = [legend2l ',' legend2r];
    end
    if (isfield(handles,'hFigure'))
-      if ishandle(handles.hFigure(2))
+       if ishandle(handles.hFigure(2))   
+          if isfield(handles,'fig_index_21')
+            for i = 1:length(handles.fig_index_21(:,1))
+                index = handles.fig_index_21(i,2);         
+                line_handle = handles.fig_index_21(i,1);  
+                
+                handles.EXPDATA(index).color_l = get(line_handle, 'Color');
+                style = 1;
+                if strcmp(get(line_handle,'LineStyle'), '--')
+                    style = 2;
+                elseif strcmp(get(line_handle,'LineStyle'), ':')
+                    style = 3;
+                elseif strcmp(get(line_handle,'LineStyle'), '-.')
+                    style = 4;
+                end
+                handles.EXPDATA(index).p_set_l = [style, get(line_handle,'LineWidth')];
+            end
+            handles.fig1_fontSize_left = get(handles.hAxes.ax21, 'FontSize');
+          
+          end
+          
+          if isfield(handles,'fig_index_22')
+            for i = 1:length(handles.fig_index_22(:,1))
+                index = handles.fig_index_22(i,2);         
+                line_handle = handles.fig_index_22(i,1);  
+                
+                handles.EXPDATA(index).color_r = get(line_handle, 'Color');
+                style = 1;
+                if strcmp(get(line_handle,'LineStyle'), '--')
+                    style = 2;
+                elseif strcmp(get(line_handle,'LineStyle'), ':')
+                    style = 3;
+                elseif strcmp(get(line_handle,'LineStyle'), '-.')
+                    style = 4;
+                end
+                handles.EXPDATA(index).p_set_r = [style, get(line_handle,'LineWidth')];
+            end
+            handles.fig1_fontSize_right = get(handles.hAxes.ax22, 'FontSize');
+          end
+          
+         handles.fig1_position = get(handles.hFigure(2), 'Position');
+         
          close(handles.hFigure(2));
-      end
-   end
+         else
+          load plot_settings.mat
+          handles.fig1_fontSize_left = settings.left.FontSize;
+          handles.fig1_fontSize_right = settings.right.FontSize;
+          handles.fig1_position = settings.Position;
+          clear settings
+       end
+    end
    %figure2
    handles.hFigure(2) = figure(...
       'Visible', 'off',...
@@ -1485,7 +1599,7 @@ if ((length(dataset2l) ~=1) || (length(dataset2r)~=1))
       'NumberTitle', 'off', ...
       'HandleVisibility','callback', ...
       'Units', 'normalized', ...
-      'Position',[0.2,0.2,0.65,0.6],...
+      'Position',handles.fig1_position,...
       'Color', get(0,...
       'defaultuicontrolbackgroundcolor'));
 %  handles.hSavepng2 = uicontrol(handles.hFigure(2), ...
@@ -1508,8 +1622,31 @@ if ((length(dataset2l) ~=1) || (length(dataset2r)~=1))
    % plot figure with eval
    if(length(dataset2l) ~=1)
       h21=eval(s1);
+      handles.fig_index_21 = [h21, ph_21']; 
       ylabel(handles.hAxes.ax21, handles.var.yLabel2Left);
+      for i=1:length(handles.fig_index_21(:,1))
+            index = handles.fig_index_21(i,2);
+            line_handle = handles.fig_index_21(i,1);
+        if isfield(handles.EXPDATA(index), 'color_l') % if fig 1 exists
+            set(line_handle, 'Color', handles.EXPDATA(index).color_l); 
+        else
+            %handles.EXPDATA(index).color_l = get(line_handle, 'Color');
+        end
+            set(line_handle, 'LineWidth', handles.EXPDATA(index).p_set_l(2));
+            
+            if isequal(handles.EXPDATA(index).p_set_l(1),1)
+                style = '-';
+            elseif isequal(handles.EXPDATA(index).p_set_l(1),2)
+                style = '--';
+            elseif isequal(handles.EXPDATA(index).p_set_l(1),3)
+                style = ':';
+            else
+               style = '-.';
+            end
+            set(line_handle, 'LineStyle', style);
+     end
    end
+   set(handles.hAxes.ax21, 'FontSize', handles.fig1_fontSize_left)
    set(handles.hAxes.ax21, 'XLim', limits2);
    hold on;
    handles.hAxes.ax22=axes('Position', get(handles.hAxes.ax21, 'Position'), ...
@@ -1521,13 +1658,38 @@ if ((length(dataset2l) ~=1) || (length(dataset2r)~=1))
    hold on;
    if(length(dataset2r) ~=1)
       h22=eval(s2);
-      set(h22, 'LineStyle', '--');
+      handles.fig_index_22 = [h22, ph_22']; 
+      ylabel(handles.hAxes.ax22, handles.var.yLabel2Right);
+     for i=1:length(handles.fig_index_22(:,1))
+            index = handles.fig_index_22(i,2);
+            line_handle = handles.fig_index_22(i,1);
+        if isfield(handles.EXPDATA(index), 'color_r') % if fig 1 exists
+            set(line_handle, 'Color', handles.EXPDATA(index).color_r); 
+        else
+            %handles.EXPDATA(index).color_l = get(line_handle, 'Color');
+        end
+            set(line_handle, 'LineWidth', handles.EXPDATA(index).p_set_r(2));
+            
+            if isequal(handles.EXPDATA(index).p_set_r(1),1)
+                style = '-';
+            elseif isequal(handles.EXPDATA(index).p_set_r(1),2)
+                style = '--';
+            elseif isequal(handles.EXPDATA(index).p_set_r(1),3)
+                style = ':';
+            else
+               style = '-.';
+            end
+            set(line_handle, 'LineStyle', style);
+     end
+   
+   set(handles.hAxes.ax22, 'FontSize', handles.fig1_fontSize_right)
+   
       ylabel(handles.hAxes.ax22, handles.var.yLabel2Right);
       set(handles.hAxes.ax22, 'Position', get(handles.hAxes.ax21, 'Position'));
       set(handles.hAxes.ax22, 'Visible', 'on');
    end
    handles.legends2 = eval(t);
-   %set(handles.legends2, 'Location', 'BestOutside');
+   
    set(handles.hAxes.ax22, 'Position', get(handles.hAxes.ax21, 'Position'));
    switch handles.Options.Fig_xtype(2)
       case 0
@@ -1536,32 +1698,17 @@ if ((length(dataset2l) ~=1) || (length(dataset2r)~=1))
          xlabel(handles.hAxes.ax21,'Time');
    end
    guidata(handles.hFigure(2), handles);
+   %save handle information
+    plot_handles.fig2.figure = handles.hFigure(2);
+    plot_handles.fig2.left.ax = handles.hAxes.ax21;
+    plot_handles.fig2.right.ax = handles.hAxes.ax21;
+    plot_handles.fig2.left.lines = h21;        
+    plot_handles.fig2.right.lines = h22;   
+
+save plot_handles.mat plot_handles
+clear plot_handles
 end
-%handles.fig_index_11 = [h11, ph_11']; 
-%handles.fig_index_12 = [h12, ph_12']; 
-%handles.fig_index_21 = [h21, ph_21']; 
-%handles.fig_index_22 = [h22, ph_22']; 
 
 guidata(handles.hPyroPlot, handles);
 set(handles.hPyroPlot, 'Visible', 'on');
 end
-
-%function savepng1_cb(hObject, eventdata)
-%handles = guidata(hObject);
-%fig = handles.hFigure(1);
-%delete(handles.legends1);
-%delete(handles.hSavepng1);
-%set(fig, 'Position', [0.2 0.2 0.5 0.5]);
-%set(handles.hAxes.ax12, 'Position', get(handles.hAxes.ax11, 'Position'));
-%guidata(fig, handles);
-%end
-
-%function savepng2_cb(hObject, eventdata)
-%handles = guidata(hObject);
-%fig = handles.hFigure(2);
-%delete(handles.legends2);
-%delete(handles.hSavepng2);
-%set(fig, 'Position', [0.2 0.2 0.5 0.5]);
-%set(handles.hAxes.ax22, 'Position', get(handles.hAxes.ax21, 'Position'));
-%guidata(fig, handles);
-%end

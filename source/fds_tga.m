@@ -120,7 +120,7 @@ l=1;
 elseif strcmp(CHID,'cone')
     file = [CHID '_hrr.csv'];
     file_devc = [CHID '_devc.csv'];
-    data = readdata(file,3);
+    data = readdata(file,2);
     data_devc = readdata(file_devc,2);
     HRR = data(:,2);
     if dT == 1
@@ -142,4 +142,8 @@ eval(['delete ' CHID '*.csv'])
 eval(['delete ' CHID '*.out'])
 eval(['delete ' CHID '*.end'])
 eval(['delete ' CHID '*.smv'])
+eval(['delete ' CHID '*.bf'])
+eval(['delete ' CHID '*.sf'])
+eval(['delete ' CHID '*.sz'])
+eval(['delete ' CHID '*.s3d'])
 end

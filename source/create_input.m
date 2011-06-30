@@ -1,10 +1,10 @@
-function filename = create_input(template_file, Chrom, LogScaling,Par)
+function filename = create_input(template_file, Chrom, LogScaling,Par, filename)
 %   template_file   name of the fds input template (string)
 %   Chrom           values of the variables (vector)
 %   LogScaling      toggle the logarithmic scaling (vector of 0's and 1's)
 %   Param           values of the parameters (vector, optional)
 
-filename = 'bestInput.fds';
+%filename = 'bestInput.fds';
 
 fid_in = fopen(template_file,'rt');
 fid_out = fopen(filename,'wt');

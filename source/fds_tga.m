@@ -92,30 +92,33 @@ system(sysstr);
 %
 % Read results
 %
-if strcmp(CHID,'tga')
-massfile = [CHID '_prof_01.csv'];
-M = readdata(massfile,3);
-M = M(:,[1 4 5]);
-Mass = [M(:,1),M(:,2).*M(:,3)];
-tempfile = [CHID '_devc.csv'];
-Temp1 = readdata(tempfile, 3);
-N = length(Mass);
-
-l=1;
-     if min(Temp1(:,1))>min(Mass(:,1))  %if first value smaller        
-            while min(Temp1(:,1))>Mass(l,1)
-                l=l+1;
-            end
-     end
-     
-    Temp(:,1) = Mass(l:length(Mass(:,1)),1);
-    Temp(:,2) = interp1(Temp1(:,1), Temp1(:,2), Mass(l:length(Mass(:,1)),1));
-    Temp(:,3) = interp1(Temp1(:,1), Temp1(:,3), Mass(l:length(Mass(:,1)),1));
-    Mass = Mass(l:length(Mass(:,1)),:);
-    
-    Temp(:,1) = removeNaNM(Temp(:,1),2);
-    Temp(:,2) = removeNaNM(Temp(:,2),3);
-    Temp(:,3) = removeNaNM(Temp(:,3),3);
+if strcmp(CHID,'tga') 
+% devc: (1) time (2) front temperature (3) back temperature (4) surface density 
+massfile = [CHID '_devc.csv'];
+M = readdata(massfile,2);
+Mass = M(:, [1, 4]); % time, surface density
+Temp = M(:,[1, 2, 3]);
+%M = M(:,[1 4 5]);
+%Mass = [M(:,1),M(:,2).*M(:,3)];
+%tempfile = [CHID '_devc.csv'];
+%Temp = readdata(tempfile, 3);
+% N = length(Mass);
+% 
+% l=1;
+%      if min(Temp1(:,1))>min(Mass(:,1))  %if first value smaller        
+%             while min(Temp1(:,1))>Mass(l,1)
+%                 l=l+1;
+%             end
+%      end
+%      
+%     Temp(:,1) = Mass(l:length(Mass(:,1)),1);
+%     Temp(:,2) = interp1(Temp1(:,1), Temp1(:,2), Mass(l:length(Mass(:,1)),1));
+%     Temp(:,3) = interp1(Temp1(:,1), Temp1(:,3), Mass(l:length(Mass(:,1)),1));
+%     Mass = Mass(l:length(Mass(:,1)),:);
+%     
+%     Temp(:,1) = removeNaNM(Temp(:,1),2);
+%     Temp(:,2) = removeNaNM(Temp(:,2),3);
+%     Temp(:,3) = removeNaNM(Temp(:,3),3);
 
 elseif strcmp(CHID,'cone')
     file = [CHID '_hrr.csv'];

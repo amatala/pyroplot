@@ -17,7 +17,7 @@ file_name = '';
 dir_path = handles.var.starting_path;
 if strcmp(DType, 'TGAFDS')
 rdstr = ['Read TGA from FDS output'];
-[file_name, dir_path]=uigetfile('*_prof_01.csv', rdstr, handles.var.starting_path);
+[file_name, dir_path]=uigetfile('*_devc.csv', rdstr, handles.var.starting_path);
 elseif strcmp(DType, 'Cone')
     [file_name, dir_path]=uigetfile('*_red.csv', 'Read Cone', handles.var.starting_path);
 elseif  strcmp(DType, 'Cone2')
@@ -37,36 +37,36 @@ if (~isequal(file_name,0))
    values = [];
    time = [];
    if strcmp(DType, 'TGAFDS')
-    M = readdata(file,3);
-    M = M(:,[1 4 5]);
-    Mass = [M(:,1),M(:,2).*M(:,3)];
-    tempfile = [file_name(1:length(file_name)-12) '_devc.csv'];
-    tempfile = fullfile(dir_path, tempfile);
-    Temp = readdata(tempfile, 3); %2?
+    M = readdata(file,2);
+    M = M(:,[2 4]);
+    values = [M(:,1),M(:,2)];
+    %tempfile = [file_name(1:length(file_name)-12) '_devc.csv'];
+    %tempfile = fullfile(dir_path, tempfile);
+    %Temp = readdata(tempfile, 3); %2?
     
     %if time step is different in massfile and tempfile
-    l=1;
-     if min(Temp(:,1))>min(Mass(:,1))  %if first value smaller        
-            while min(Temp(:,1))>Mass(l,1)
-                l=l+1;
-            end
-     end
-     
-    Temp = interp1(Temp(:,1), Temp(:,2), Mass(l:length(Mass(:,1)),1));
-    
-    Temp = removeNaNM(Temp,3);
-    %%%
-    N = length(Mass);
-    if N > length(Temp)
-    Mass = Mass(1:length(Temp),:);
-    elseif N < length(Temp)
-    Temp = Temp(1:N);
-    end
-    values(:,1)=Temp;
-    values(:,2)=Mass(:,2);
-    time = Mass(:,1);
+%     l=1;
+%      if min(Temp(:,1))>min(Mass(:,1))  %if first value smaller        
+%             while min(Temp(:,1))>Mass(l,1)
+%                 l=l+1;
+%             end
+%      end
+%      
+%     Temp = interp1(Temp(:,1), Temp(:,2), Mass(l:length(Mass(:,1)),1));
+%     
+%     Temp = removeNaNM(Temp,3);
+%     %%%
+%     N = length(Mass);
+%     if N > length(Temp)
+%     Mass = Mass(1:length(Temp),:);
+%     elseif N < length(Temp)
+%     Temp = Temp(1:N);
+%     end
+%     values(:,1)=Temp;
+%     values(:,2)=Mass(:,2);
+     time = M(:,1);
    %convert to mass-fraction
-   values(:,2)=values(:,2)./max(values(:,2));
+   
    elseif strcmp(DType, 'Cone')
        
        s = '%s';
@@ -578,12 +578,12 @@ for i = [DTAlines]
       end
       handles.EXPDATA(i).TGA = kTGA * handles.EXPDATA(i).TGA;
       % Compute TGA gradients
-      handles.EXPDATA(i).gradient = gradient(handles.EXPDATA(i).TGA, handles.EXPDATA(i).time(2)-handles.EXPDATA(i).time(1));
+      handles.EXPDATA(i).gradient = gradient(handles.EXPDATA(i).TGA, handles.EXPDATA(i).time);
       handles.EXPDATA(i).opgradient = -handles.EXPDATA(i).gradient;
    end
    if (strcmp(handles.EXPDATA(i).type,'TGAFDS'))
    % Compute TGA gradients
-      handles.EXPDATA(i).gradient = gradient(handles.EXPDATA(i).TGA, handles.EXPDATA(i).time(2)-handles.EXPDATA(i).time(1));
+      handles.EXPDATA(i).gradient = gradient(handles.EXPDATA(i).TGA, handles.EXPDATA(i).time);
       handles.EXPDATA(i).opgradient = -handles.EXPDATA(i).gradient;
    end
    if strcmp(handles.EXPDATA(i).type,'Cone')

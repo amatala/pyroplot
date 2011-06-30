@@ -635,7 +635,7 @@ end % end of if TGA
 set(bestIndividual, 'Visible', 'on');
 
 %save best input file
-filename = create_input(template, bestChrom, LogScaling,parameters);
+filename = create_input(template, bestChrom, LogScaling,parameters, 'bestInput.fds');
 msgbox(['Input file saved as ' filename]);
 save('best.mat', 'bestChrom');
 saveas(bestIndividual,'bestInd.fig','fig');

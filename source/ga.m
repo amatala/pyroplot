@@ -120,7 +120,7 @@ if strcmp(type,'Cone')
         'Units', 'normalized', ...
         'Position', [0.74 0.73 0.1 0.04]);
     handles.hDataType = uicontrol(hTGAga, 'Style', 'popupmenu', ...
-        'String',{'BR','SD'},...
+        'String',{'SD','BR'},...
         'BackgroundColor', 'w',...
         'Units', 'normalized', ...
         'Value',1,...
@@ -1460,10 +1460,10 @@ else
         
                 
         switch X
-            case 1
+            case 2
                 %Mass_h = handles.GA.data(i).HRR;
                 dataType = 1;
-            case 2
+            case 1
                 %Mass_m = handles.GA.data(i).MLR;
                 dataType = 2;
         end
@@ -1562,6 +1562,7 @@ fclose(fid);
 %     fprintf(fid, '%f\n', parameters(i));
 % end
 % fclose(fid);
-open('bestChrom.csv');
+
+%open('bestChrom.csv');
 guidata(handles.GA.hTGAga,handles);
 end

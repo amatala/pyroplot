@@ -90,9 +90,9 @@ MIGGEN = alg_param.MIGGEN; % No. of gens / migration
 %create initial population
 %if estimates exist, add them to initial population
 if isempty(estimates)
-    Chrom = crtrp(SUBPOP*NIND, FieldDR);
+    Chrom = CRTRP(SUBPOP*NIND, FieldDR);
 else
-Chrom = crtrp(SUBPOP*NIND-1, FieldDR);
+Chrom = CRTRP(SUBPOP*NIND-1, FieldDR);
 Chrom(SUBPOP*NIND,:)=estimates;
 end
 objVal = objF(Ndata, data, Chrom, LogScaling, template, FdsExe, weights, Aindex, limits, Par, moisture,alg_param);
@@ -104,9 +104,10 @@ ylabel('Fitness value');
 
 while gen < MAXGEN && ~exist('ga.stop','file') 
     %get Fitness Values
-FitnV = ranking(objVal,[2,1],SUBPOP);
+    warning('off','MATLAB:dispatcher:InexactCaseMatch')
+FitnV = RANKING(objVal,[2,1],SUBPOP);
 %get selection
-SelCh = select('sus', Chrom, FitnV, GGAP, SUBPOP);
+SelCh = SELECT('sus', Chrom, FitnV, GGAP, SUBPOP);
 %then recombine
 SelCh = recombin('recdis', SelCh, XOVR, SUBPOP); %xovsh - 0.7
 %mutate offsprings
@@ -114,7 +115,7 @@ SelCh = mutate('mutbga',SelCh,FieldDR,MUTR, SUBPOP);
 % Calculate objective function for offsprings
 ObjVOff = objF(Ndata, data, SelCh, LogScaling, template, FdsExe, weights, Aindex, limits, Par, moisture,alg_param);
 % Insert best offspring replacing worst parents
-[Chrom, objVal] = reins(Chrom, SelCh, SUBPOP,[1, INSR], objVal, ObjVOff);
+[Chrom, objVal] = REINS(Chrom, SelCh, SUBPOP,[1, INSR], objVal, ObjVOff);
 
 % Migrate individuals between subpopulations
 if (rem(gen,MIGGEN) == 0)
@@ -636,7 +637,7 @@ set(bestIndividual, 'Visible', 'on');
 
 %save best input file
 filename = create_input(template, bestChrom, LogScaling,parameters, 'bestInput.fds');
-msgbox(['Input file saved as ' filename]);
+msgbox(['Input file saved as ' filename], '\n Best parameters saved as bestChrom.csv');
 save('best.mat', 'bestChrom');
 saveas(bestIndividual,'bestInd.fig','fig');
 saveas(fitness,'fit.fig','fig');

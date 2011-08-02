@@ -138,6 +138,12 @@ elseif strcmp(CHID,'cone')
     %end
 end
 
+if any(isnan(Mass(:,2)))
+    f = find(~isnan(Mass(:,2)));
+    Temp = Temp(f,:);
+    Mass = Mass(f,:);
+end
+
 if (1)
 eval(['delete ' data_file])
 eval(['delete ' err_file])

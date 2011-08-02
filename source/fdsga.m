@@ -68,6 +68,7 @@ fitness = figure('Visible', 'off',...
                     'NumberTitle', 'off');
                 
 warning('off','MATLAB:dispatcher:InexactMatch');
+
 %create initial population
 %Nind is the number of variables of each individual
 %FieldDR is 2xNind vector of minimum and maximum values
@@ -105,6 +106,7 @@ ylabel('Fitness value');
 while gen < MAXGEN && ~exist('ga.stop','file') 
     %get Fitness Values
     warning('off','MATLAB:dispatcher:InexactCaseMatch')
+
 FitnV = RANKING(objVal,[2,1],SUBPOP);
 %get selection
 SelCh = SELECT('sus', Chrom, FitnV, GGAP, SUBPOP);
@@ -277,8 +279,8 @@ elseif strcmp(data(1).Type,'Cone')
         temp = 'ox_limited_input.fds';
     end
     [M,T]=fds_tga(temp,FdsExe,'cone',Chrom(line,:),LogScaling,parameters,[],data(k).dataType);
-    M(:,1)=coneFilter(T(:,2),M(:,1));
-    M(:,2)=coneFilter(T(:,2),M(:,2));
+    %M(:,1)=coneFilter(T(:,2),M(:,1));
+    %M(:,2)=coneFilter(T(:,2),M(:,2));
     M(:,1)=M(:,1)./data(1).A;
 end
 
@@ -484,7 +486,7 @@ elseif strcmp(data(1).Type,'Cone')
     end
 
 [M,T]=fds_tga(temp,FdsExe,'cone',bestChrom,LogScaling,parameters,[],data(k).dataType);
-M(:,2)=coneFilter(T(:,2),M(:,2));
+%M(:,2)=coneFilter(T(:,2),M(:,2));
 M(:,1)=M(:,1)./data(1).A;
 end
 
@@ -769,8 +771,8 @@ function objVal=objF(Ndata, data, Chrom, LogScaling, template, FdsExe, weights, 
         end
         parameters = [];
         [M,T]=fds_tga(temp,FdsExe,'cone',Chrom(i,:),LogScaling,parameters,[],data(k).dataType);
-        M(:,1)=coneFilter(T(:,2),M(:,1));
-        M(:,2)=coneFilter(T(:,2),M(:,2));
+        %M(:,1)=coneFilter(T(:,2),M(:,1));
+        %M(:,2)=coneFilter(T(:,2),M(:,2));
         M(:,1)=M(:,1)./data(1).A;
         end
      fclose('all');
@@ -780,6 +782,7 @@ function objVal=objF(Ndata, data, Chrom, LogScaling, template, FdsExe, weights, 
                 l=l+1;
             end
      end
+     
     Mass = [];
     Mass(:,1) = interp1(T(:,2), M(:,1), data(k).T(l:length(data(k).T)));
     Mass(:,2) = interp1(T(:,2), M(:,2), data(k).T(l:length(data(k).T)));

@@ -1,28 +1,28 @@
-function f = removeNaNM(f,N)
+function [x1, y1, x2, y2, y3] = removeNaNM(x1, y1, x2, y2, y3)
 
-% N = 1 -> Mass
-% N = 2 -> Time
-% N = 3 -> Temperature
+%xy 1 - exp
+%xy 2 - model
 
-if N == 1
-    for i=1:length(f)
-        if isnan(f(i))
-            f(i) = f(i-1);
-        end
-    end
-elseif N == 2
-    dt = f(2)-f(1);
-    for i=1:length(f)
-        if isnan(f(i))
-            f(i) = f(i-1)+dt;
-        end
-    end
-elseif N == 3
-    dT = f(2)-f(1);
-    for i=1:length(f)
-        if isnan(f(i))
-            f(i) = f(i-1)+dT;
-        end
-    end
+%remove NaN from x1
+f = find(~isnan(x1));
+x1 = x1(f);
+y1 = y2(f);
+
+%interpolate values of y2 to x1
+y2 = interp1(x2, y2, x1);
+y3 = interp1(x2, y3, x1);
+
+%remove NaN from all
+f = find(~isnan(y2));
+x1 = x1(f);
+x2 = x1;
+y1 = y1(f);
+y2 = y2(f);
+y3 = y3(f);
+
+%check
+if any(isnan(x1)) || any(isnan(x2)) || any(isnan(y1)) || any(isnan(y2))
+   msgbox('All NaN not removed!') 
 end
+
 end

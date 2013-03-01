@@ -6,7 +6,7 @@ function [x1, y1, x2, y2, y3] = removeNaNM(x1, y1, x2, y2, y3)
 %remove NaN from x1
 f = find(~isnan(x1));
 x1 = x1(f);
-y1 = y2(f);
+y1 = y1(f);
 
 %interpolate values of y2 to x1
 y2 = interp1(x2, y2, x1);

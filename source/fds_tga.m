@@ -1,4 +1,4 @@
-function [Mass, Temp] = fds_tga(template_file, fdsexe, CHID, Chrom, LogScaling,Par,Indx,dT)
+function [Mass, Temp, t_fds] = fds_tga(template_file, fdsexe, CHID, Chrom, LogScaling,Par,Indx,dT)
 % FDS_TGA   Calls FDS for TGA application using template
 %
 % [Mass, Temp] = fds_tga(template_file, fdsexe, CHID, Chrom, LogScaling[, Param,Indx])
@@ -33,6 +33,7 @@ if (nargin<6), Par = []; end
 %
 % Create input file
 %
+
 namestr = [num2str(round(1000*cputime)) '_' num2str(Indx)];
 data_file = ['fdstga' namestr '.fds'];
 err_file = ['fdstga' namestr '.err'];
@@ -84,14 +85,18 @@ while (~feof(fid_in))
 end
 fclose(fid_in);
 fclose(fid_out);
+
 %
 % Run FDS
-%
+tic_fds = tic;
 sysstr = [fdsexe ' ' data_file ' 2> ' err_file];
 system(sysstr);
+t_fds = toc(tic_fds);
+
 %
 % Read results
 %
+
 if strcmp(CHID,'tga') 
 % devc: (1) time (2) front temperature (3) back temperature (4) surface density 
 massfile = [CHID '_devc.csv'];

@@ -96,8 +96,10 @@ else
 Chrom = crtrp(SUBPOP*NIND-1, FieldDR);
 Chrom(SUBPOP*NIND,:)=estimates;
 end
-objVal = objF(Ndata, data, Chrom, LogScaling, template, FdsExe, weights, Aindex, limits, Par, moisture,alg_param);
+
+[objVal,t] = objF(Ndata, data, Chrom, LogScaling, template, FdsExe, weights, Aindex, limits, Par, moisture,alg_param);
 [bestEver,line] = min(objVal);
+
 gen = 0;
 set(fitness, 'Visible', 'on');
 xlabel('Generation');
@@ -106,7 +108,7 @@ ylabel('Fitness value');
 while gen < MAXGEN && ~exist('ga.stop','file') 
     %get Fitness Values
     warning('off','MATLAB:dispatcher:InexactCaseMatch')
-
+tic_gen = tic;
 FitnV = ranking(objVal,[2,1],SUBPOP);
 %get selection
 SelCh = select('sus', Chrom, FitnV, GGAP, SUBPOP);
@@ -115,7 +117,7 @@ SelCh = recombin('recdis', SelCh, XOVR, SUBPOP); %xovsh - 0.7
 %mutate offsprings
 SelCh = mutate('mutbga',SelCh,FieldDR,MUTR, SUBPOP);
 % Calculate objective function for offsprings
-ObjVOff = objF(Ndata, data, SelCh, LogScaling, template, FdsExe, weights, Aindex, limits, Par, moisture,alg_param);
+[ObjVOff,time_fds] = objF(Ndata, data, SelCh, LogScaling, template, FdsExe, weights, Aindex, limits, Par, moisture,alg_param);
 % Insert best offspring replacing worst parents
 [Chrom, objVal] = reins(Chrom, SelCh, SUBPOP,[1, INSR], objVal, ObjVOff);
 
@@ -218,45 +220,9 @@ for k=1:Ndata
         end
     end
     
- %   for n=1:length(parInd)
-%    
-%      if parInd(n)==1
-%          %if tramp T parameter
-%             if par(1)==1
-%             parameters(n) = par(2)/data(k).Rate*60;
-%             %if residue parameter
-%             %if mass fraction parameter
-%             elseif parInd(n)==length(parInd)
-%              parameters(n)=1-moisture-sum(Chrom(i,par(6+NR:L))); 
-%              index = index+1;
-%              %if residue parameter
-%             else
-%             index = index+1;
-%             parameters(n)=1-Chrom(i,par(index));
-%             end
-%         elseif parInd(n)==2
-%             if par(1)==1 && par(3)==1
-%              parameters(n)= par(4)/data(k).Rate*60;
-%             elseif parInd(n)==length(parInd)
-%              parameters(n)=1-moisture-sum(Chrom(i,par(6+NR:L))); 
-%              index = index+1;
-%              %if residue parameter
-%             else
-%             index = index+1;
-%             parameters(n)=1-Chrom(i,par(index));
-%             end
-%         elseif parInd(n)==length(parInd) && parInd(n) > (2+par(5))
-%                 parameters(n)=1-moisture-sum(Chrom(i,par(6+NR:L)));
-%                 index = index +1;
-%         else
-%             index = index+1;
-%             parameters(n)=1-Chrom(i,par(index));
-%             %if mass fraction parameter
-%      
-%      end %if
- %   end%for n
+ 
 if strcmp(data(1).Type,'TGA')
-    [M,T]=fds_tga(template,FdsExe,'tga',Chrom(line,:),LogScaling,parameters,[],0);
+    [M,T,t]=fds_tga(template,FdsExe,'tga',Chrom(line,:),LogScaling,parameters,[],0);
     M(:,2)=M(:,2)./max(M(:,2)); 
     dt = T(2,1)-T(1,1); %time step
     T0 = T(1,2);
@@ -278,9 +244,8 @@ elseif strcmp(data(1).Type,'Cone')
     else %if in N2
         temp = 'ox_limited_input.fds';
     end
-    [M,T]=fds_tga(temp,FdsExe,'cone',Chrom(line,:),LogScaling,parameters,[],data(k).dataType);
-    %M(:,1)=coneFilter(T(:,2),M(:,1));
-    %M(:,2)=coneFilter(T(:,2),M(:,2));
+    [M,T,t]=fds_tga(temp,FdsExe,'cone',Chrom(line,:),LogScaling,parameters,[],data(k).dataType);
+
     M(:,1)=M(:,1)./data(1).A;
 end
 
@@ -342,10 +307,16 @@ if gen == 0
 else
     str = [str, mat2str(best(gen))];
 end
-
-fprintf(fid, '%s\n', str);
-
+fprintf(fid, '%s', str);
+time_gen = toc(tic_gen);
+fprintf(fid, '%s\n', [', ',mat2str(round(time_gen))]);
 fclose(fid);
+
+display('----------------------------------')
+display(['Generation ', mat2str(gen), ' finished.'])
+display(['Total time elapsed ', mat2str(round(time_gen)), ' s (about ', mat2str(round(time_gen/60)), ' min)'])
+display(['Time consumed by fds ', mat2str(round(time_fds/time_gen*100)), ' %'])
+display('  ')
 
 gen = gen+1;
 end %end of while
@@ -420,50 +391,9 @@ for k=1:Ndata
             end
         end
     end
-%     if strcmp(data(1).Type,'TGA')
-%         parameters = zeros(1,length(parInd));
-%         index = 5;
-%         NR = par(5);
-%         L = length(par);
-%         for n=1:length(parInd)
-%     
-%          if parInd(n)==1
-%              %if tramp T parameter
-%                 if par(1)==1
-%                 parameters(n) = par(2)/data(k).Rate*60;
-%                 %if residue parameter
-%                 %if mass fraction parameter
-%                 elseif parInd(n)==length(parInd)
-%                  parameters(n)=1-moisture-sum(Chrom(i,par(6+NR:L))); 
-%                  index = index+1;
-%                  %if residue parameter
-%                 else
-%                 index = index+1;
-%                 parameters(n)=1-Chrom(i,par(index));
-%                 end
-%         elseif parInd(n)==2
-%                 if par(1)==1 && par(3)==1
-%                  parameters(n)= par(4)/data(k).Rate*60;
-%                 elseif parInd(n)==length(parInd)
-%                  parameters(n)=1-moisture-sum(Chrom(i,par(6+NR:L))); 
-%                  index = index+1;
-%                  %if residue parameter
-%                 else
-%                 index = index+1;
-%                 parameters(n)=1-Chrom(i,par(index));
-%                 end
-%         elseif parInd(n)==length(parInd) && parInd(n) > (2+par(5))
-%                 parameters(n)=1-moisture-sum(Chrom(i,par(6+NR:L)));
-%                 index = index +1;
-%         else
-%             index = index+1;
-%             parameters(n)=1-Chrom(i,par(index));
-%             %if mass fraction parameter
-%      
-%         end%end of if parInd(n)
-%         end %end of for n
+
 if strcmp(data(1).Type,'TGA')
-    [M,T]=fds_tga(template,FdsExe,'tga',bestChrom,LogScaling,parameters,[],0);
+    [M,T,t]=fds_tga(template,FdsExe,'tga',bestChrom,LogScaling,parameters,[],0);
     M(:,2)=M(:,2)./max(M(:,2));
     dt = T(2,1)-T(1,1); %time step
     T0 = T(1,2);
@@ -485,7 +415,7 @@ elseif strcmp(data(1).Type,'Cone')
         temp = 'ox_limited_input.fds';
     end
 
-[M,T]=fds_tga(temp,FdsExe,'cone',bestChrom,LogScaling,parameters,[],data(k).dataType);
+[M,T,t]=fds_tga(temp,FdsExe,'cone',bestChrom,LogScaling,parameters,[],data(k).dataType);
 %M(:,2)=coneFilter(T(:,2),M(:,2));
 M(:,1)=M(:,1)./data(1).A;
 end
@@ -578,48 +508,8 @@ if strcmp(data(1).Type,'TGA') %gradient
             end
         end
     end
-%plot gradient
-% parameters = zeros(1,length(parInd));
-% index = 5;
-% NR = par(5);
-%     L = length(par);
-%     for n=1:length(parInd)
-%       if parInd(n)==1
-%          %if tramp T parameter
-%             if par(1)==1
-%             parameters(n) = par(2)/data(k).Rate*60;
-%             %if residue parameter
-%             %if mass fraction parameter
-%             elseif parInd(n)==length(parInd)
-%              parameters(n)=1-moisture-sum(Chrom(i,par(6+NR:L))); 
-%              index = index+1;
-%              %if residue parameter
-%             else
-%             index = index+1;
-%             parameters(n)=1-Chrom(i,par(index));
-%             end
-%         elseif parInd(n)==2
-%             if par(1)==1 && par(3)==1
-%              parameters(n)= par(4)/data(k).Rate*60;
-%             elseif parInd(n)==length(parInd)
-%              parameters(n)=1-moisture-sum(Chrom(i,par(6+NR:L))); 
-%              index = index+1;
-%              %if residue parameter
-%             else
-%             index = index+1;
-%             parameters(n)=1-Chrom(i,par(index));
-%             end
-%         elseif parInd(n)==length(parInd) && parInd(n) > (2+par(5))
-%             parameters(n)=1-moisture-sum(Chrom(i,par(6+NR:L)));
-%             index = index +1;
-%         else
-%             index = index+1;
-%             parameters(n)=1-Chrom(i,par(index));
-%             %if mass fraction parameter
-% 
-%         end
-%     end %end of for n
-[M,T]=fds_tga(template,FdsExe,'tga',bestChrom,LogScaling,parameters,[],0);
+
+[M,T,t]=fds_tga(template,FdsExe,'tga',bestChrom,LogScaling,parameters,[],0);
 M(:,2)=M(:,2)./max(M(:,2));
 d = M(2,1)-M(1,1);
 g = -gradient(M(:,2),d);
@@ -651,7 +541,7 @@ end %end of function
 
 %----------------------------------------------------------------------
 
-function objVal=objF(Ndata, data, Chrom, LogScaling, template, FdsExe, weights, Aindex, limits, Par, moisture,alg_param)
+function [objVal, time_fds]=objF(Ndata, data, Chrom, LogScaling, template, FdsExe, weights, Aindex, limits, Par, moisture,alg_param)
 %time, data are experimental data
     
     %weights = [985/1000 15/1000]; %weights of fitness function: 1. data 2. gradient 3.penalty of A
@@ -659,6 +549,7 @@ function objVal=objF(Ndata, data, Chrom, LogScaling, template, FdsExe, weights, 
     R=[];
     R_1 = [];
     R_2 = [];
+    time_fds = 0;
     for i=1:NIND
     SV = 0; %SV is the scaling value, sum of squares
     rdata = [];
@@ -716,53 +607,11 @@ function objVal=objF(Ndata, data, Chrom, LogScaling, template, FdsExe, weights, 
             end
         end
     end
-%       if strcmp(data(1).Type,'TGA')
-%         parameters = zeros(1,length(parInd));
-%         index = 5;
-%         NR = par(5);
-%         L = length(par);
-%        for n=1:length(parInd) 
-%            
-%             if parInd(n)==1
-%                  %if tramp T parameter
-%                     if par(1)==1
-%                     parameters(n) = par(2)/data(k).Rate*60;
-%                     %if residue parameter
-%                     %if mass fraction parameter
-%                     elseif parInd(n)==length(parInd)
-%                      parameters(n)=1-moisture-sum(Chrom(i,par(6+NR:L))); 
-%                      index = index+1;
-%                      %if residue parameter
-%                     else
-%                     index = index+1;
-%                     parameters(n)=1-Chrom(i,par(index));
-%                     end
-%             elseif parInd(n)==2
-%                     if par(1)==1 && par(3)==1
-%                      parameters(n)= par(4)/data(k).Rate*60;
-%                     elseif parInd(n)==length(parInd)
-%                      parameters(n)=1-moisture-sum(Chrom(i,par(6+NR:L))); 
-%                      index = index+1;
-%                      %if residue parameter
-%                     else
-%                     index = index+1;
-%                     parameters(n)=1-Chrom(i,par(index));
-%                     end
-%             elseif parInd(n)==length(parInd) && parInd(n) > (2+par(5))
-%                     parameters(n)=1-moisture-sum(Chrom(i,par(6+NR:L)));
-%                     index = index +1;
-%             else
-%                 index = index+1;
-%                 parameters(n)=1-Chrom(i,par(index));
-%                 %if mass fraction parameter
-%      
-%             end
-%        
-%        end % end of for n
-%        end %if TGA
+
      resMass = min(data(k).M);
         if strcmp(data(1).Type,'TGA')
-        [M,T]=fds_tga(template,FdsExe,'tga',Chrom(i,:),LogScaling,parameters,[],0);
+        [M,T,t]=fds_tga(template,FdsExe,'tga',Chrom(i,:),LogScaling,parameters,[],0);
+        time_fds = time_fds + t;
         elseif strcmp(data(1).Type,'Cone')
         if strcmp(data(k).gas,'Air')
             temp = template;
@@ -770,7 +619,8 @@ function objVal=objF(Ndata, data, Chrom, LogScaling, template, FdsExe, weights, 
             temp = 'ox_limited_input.fds';
         end
         parameters = [];
-        [M,T]=fds_tga(temp,FdsExe,'cone',Chrom(i,:),LogScaling,parameters,[],data(k).dataType);
+        [M,T,t]=fds_tga(temp,FdsExe,'cone',Chrom(i,:),LogScaling,parameters,[],data(k).dataType);
+        time_fds = time_fds + t;
         %M(:,1)=coneFilter(T(:,2),M(:,1));
         %M(:,2)=coneFilter(T(:,2),M(:,2));
         M(:,1)=M(:,1)./data(1).A;
@@ -977,6 +827,7 @@ function objVal=objF(Ndata, data, Chrom, LogScaling, template, FdsExe, weights, 
     % final objective value is weighted mean of models with different rates
     objVal(i) =mean(rdata)+weights(3)*A;
     end %end of for i
+
     objVal = objVal';
     
 end % end of function

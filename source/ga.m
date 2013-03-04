@@ -1544,7 +1544,7 @@ if ~isempty(handles.GA.Par_struct.ramp_value.index)
        str = [str, 'Ramp value ', mat2str(i),','];
    end
 end
-str = [str, 'Fitness value'];
+str = [str, 'Fitness value, Time elapsed (s)'];
 fprintf(fid, '%s\n', str);
 
 fclose(fid);
